@@ -96,33 +96,32 @@ print menu_tree($menu_name);
 						<ul class="overview">
 							<?php
 								$output = '';
-								$sql = 'SELECT * FROM {node} WHERE type = "%s" OR type = "%s" OR type = "%s" LIMIT 12';
+								$sql = 'SELECT * FROM {node} WHERE type = "%s" OR type = "%s" OR type = "%s" LIMIT 24';
 								$result = db_query($sql,'printer','copier','cartridge');
 								
 								while($item = db_fetch_object($result)){
 									$parts_node = node_load($item->nid);
 									
 									$brand= array();
-                  foreach($parts_node->taxonomy as $k =>$value){
+                  					foreach($parts_node->taxonomy as $k =>$value){
 										if($value->vid == 2  || $value->vid == 5 || $value->vid == 7){
 											foreach(taxonomy_get_parents($value->tid) as $m => $maker) {
 												if(!array_key_exists($maker->tid,$brand))
 													$brand[$maker->tid]=$maker->name;
 											}
 										}
-                  }
-                  $brand_html = implode(',',$brand);
+                 					 }
+                 					 $brand_html = implode(',',$brand);
 									
-									unset($cate_link);
-						 			foreach($parts_node->taxonomy as $term) {
-							  		if($term->vid == 3 || $term->vid == 4 || $term->vid == 6 ) {
-											$has_parent = taxonomy_get_parents($term->tid);
-												if($has_parent) {
-										  		$parent = $has_parent[key($has_parent)];
-									  			$cate_link[] =  t($parent->name);
-												}
-						     		} 
-						 			}
+									$cate_link= array();
+                  					foreach($parts_node->taxonomy as $k =>$value){
+										if($value->vid == 3  || $value->vid == 4 || $value->vid == 6){
+											foreach(taxonomy_get_parents($value->tid) as $m => $maker) {
+												if(!array_key_exists($maker->tid,$brand))
+													$cate_link[$maker->tid]=$maker->name;
+											}
+										}
+                 					 }
 									$category_html = implode(',',array_merge($cate_link));
 									
 									if(file_exists('sites/default/files/product/' . $parts_node->title .'.jpg')) {
