@@ -1,0 +1,15 @@
+<?php 
+/**
+ * @file
+ * Implementation of hook_install().
+ */
+function ps_pages_install() {
+  drupal_install_schema('ps_pages');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function ps_pages_uninstall() {
+   drupal_uninstall_schema('ps_pages');
+}

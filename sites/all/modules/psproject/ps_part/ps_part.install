@@ -1,0 +1,84 @@
+<?php
+// $Id$
+
+/**
+ * Implementation of hook_install().
+ */
+function ps_part_install() {
+   drupal_install_schema('ps_part');
+  
+}
+
+/**
+  * Implement hook_enable()
+  */
+function ps_part_enable() {
+
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function ps_part_uninstall() {
+   drupal_uninstall_schema('ps_part');
+   
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function ps_part_schema() {
+    $schema['ps_part'] = array(
+        'description' => 'Stores all the part association, type, brand .etc',
+        'fields' => array(
+           'sid' => array(
+                'type' => 'serial', 
+		'unsigned' => TRUE, 
+		'not null' => TRUE
+            ),
+            'nid' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'default' => 0,
+                'description' => "The part node nid",
+                ),			 
+                
+            'type' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'default' => 0,
+                'description' => "prodcut type",
+                ),			 
+            'brand' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'default' => 0,
+                'description' => "The brand tid",
+            ),            
+            'category' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'default' => 0,
+                'description' => "category tid",
+            ),                 
+            'model' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+                'not null' => TRUE,
+                'default' => 0,		
+                'description' => t('the model node nid of this part'),                
+			),		
+		),		
+
+        'primary key' => array('sid'),
+       
+    );
+	
+	
+    return $schema;
+}
+

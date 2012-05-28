@@ -1,0 +1,409 @@
+<?php
+
+function pscart_menu() {
+	  $items['ps/addtocart/%'] = array(
+    'title' => 'Add to cart',
+    'page callback' => 'pscart_addtocart',
+    'page arguments' => array(2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+function pscart_addtocart($arg) { 
+	global $user;
+	if(array_key_exists(3,$user->roles)){
+		unset($num);
+		$part = node_load($arg);
+		foreach ($part->field_part_rg_price_vr as $k => $range) {
+			if( $part->field_part_rg_unitprice[$k]['value'] > 0 ) {
+      	$num = $range[value];
+				break;
+   		}
+		}
+		uc_cart_add_item($arg, $num);
+	}
+	else{
+	 uc_cart_add_item($arg, 1);
+	}
+	//drupal_set_message(t('Your cart has been updated.'));
+	drupal_goto('cart');
+	return;
+}
+
+
+/**
+ * Implementation of hook_cart_item().
+ */
+function pscart_cart_item($op, &$item) {
+	global $user;
+  switch ($op) {
+    case 'load'://Update cart item price
+			if(array_key_exists(3,$user->roles)){
+     		$itemprice = pscart_cart_update_price($item->nid,$item->qty);
+      	if(!empty($itemprice)){
+        	$item->price = $itemprice;
+      	}
+      	break;
+			}
+			else{
+				$node = node_load($item->nid);
+				$item->price = $node->field_part_unitprice[0]['value'];
+			}
+  }
+}
+
+function pscart_cart_update_price($nid,$qty) {
+	$node = node_load($nid);
+  global $user;
+	
+
+	if(empty($prices)) {
+      $prices = ps_pages_get_shop_sale_price($node->field_part_rg_price_vr,$node->field_part_rg_unitprice);
+	 
+  }
+	
+		foreach($prices as $price) {
+			 $ps[$price['range']] = $price['price'];
+		}
+		ksort($ps);
+		foreach($ps as $k=>$val) {
+			if($k <= $qty) {
+				 $itemprice = $val;
+			}
+		}
+	 
+		return $itemprice;
+	
+  
+}
+
+function pscart_form_alter(&$form, $form_state, $form_id) {
+	global $user;
+	if($form_id == 'product_node_form') {
+		$form['base']['model']['#title'] = t('Partsmart SKU');
+		$form['#after_build'][] = 'pscart_node_form_after_build';
+ 	}
+ 
+	if($form_id ==  'uc_cart_view_form'){
+		$form['checkout']['#submit'][] = 'pscart_checkout_submit';
+		
+		$i = 0; 
+		$form['items']['#columns']['desc']['cell'] = t('Description');
+    foreach (uc_cart_get_contents() as $item){
+    	$display_item = module_invoke($item->module, 'cart_display', $item);
+			$part = node_load($item->nid);
+			$prices = array();
+			if(array_key_exists(3,$user->roles)){
+     		foreach ($part->field_part_rg_price_vr as $k => $range) {
+					if( $part->field_part_rg_unitprice[$k]['value'] > 0 ) {
+        		$prices[] = '(+' . $range['value'] . ') ' . '$' . number_format($part->field_part_rg_unitprice[$k]['value'], 2, '.', '');
+   				}
+				}
+			}
+			else{
+				$prices[] = '$'.number_format($part->field_part_unitprice[0]['value'],2,'.','');
+			}
+			
+      $description = '<p>'.$display_item['title']['#value'].'</p>';
+			$description .= '<p>'.implode('<br>', $prices).'</p>';
+			if(file_exists('sites/default/files/product/' . $part->title .'.jpg')) {
+				$images = '<img src="'. imagecache_create_url("s51x51", 'sites/default/files/product/' . $part->title .'.jpg'). '" alt="" />';
+			}else{
+				$images = '<img src="'. imagecache_create_url("s51x51", 'sites/default/files/default_images/blank.jpg'). '" alt="" />';
+			}
+      $form['items'][$i]['image']['#value'] = $images;
+			$form['items'][$i]['desc']['#value'] = $description;
+      $i++;
+    }
+	}
+	
+	//cart checkout page, need to seperate it with multi step
+	if($form_id ==  'uc_cart_checkout_form'){
+	if(isset($_SESSION['pscart_checkout_step'])){
+		unset($_SESSION['pscart_checkout_step']);
+	}	
+	//	$form['continue']['#submit'][] = 'pscart_checkout_form_submit';      
+	}
+  
+}
+
+/*
+function pscart_checkout_form_submit($form, &$form_state) {
+  		$_SESSION['pscart_checkout_step'] = 2; 
+  
+} 
+*/ 
+
+/*add indicator for the checkout
+*/
+function pscart_checkout_submit(){
+
+	$_SESSION['pscart_checkout_step'] = 1; 
+
+}
+
+function pscart_node_form_after_build($form, &$form_state) {
+ 
+	return $form;
+}
+
+function pscart_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+		if ( $op == 'validate' ) {
+			// We only care about nodes of type 'desired type'
+			  // Change this to the type you want to restrict titles on
+			 
+			if ( $node->type == 'product' || $node->type == 'copier_model' || $node->type == 'printer_model'  ) {
+				$sql = "SELECT n.title, n.nid FROM {node} n WHERE type = '%s' AND title = '%s'";
+				$results = db_query($sql, $node->type, $node->title);
+				$existing = db_fetch_object($results);
+				// We get here on both inserts and updates
+				// For updates we want to make sure the title does not match another one
+				// So we make sure it is an insert ( ! $node->nid )
+				// or for update that we have not just found the node being updated ( $exisiting->nid != $node->nid )
+				if ( ( ! $node->nid ||  $existing->nid != $node->nid ) && $existing->title == $node->title ) {
+					$link = l(t('existing %type', array('%type' => $node->type)), "node/$existing->nid");
+					form_set_error('title', t('There is already a %type called %title.', array('%type' => $node->type, '%title' => $node->title)));
+				}
+	}
+}
+
+}
+
+function pscart_preprocess_page(&$vars){
+	
+    if($_GET['q']=='cart/checkout') {
+      $vars['title'] = t('Billing and Shipping Information');
+    }
+}
+
+/**
+* Implementation of hook_checkout_pane_alter().
+* Alters billing pane
+* @param array $panes
+* @return void
+*/
+function pscart_checkout_pane_alter(&$panes) {
+  foreach ($panes as $key => $pane) {
+    switch ($pane[id]) {
+			case 'customer':
+				$panes[$key][callback] = 'pscart_uc_checkout_pane_customer';
+			break;	
+				
+    	case 'delivery':
+				$panes[$key][title] = $_GET['q'] == 'cart/checkout/review' ? t('Delivery') : $panes[$key][title];
+    	break;
+			
+			case 'billing':
+				$panes[$key][title] = $_GET['q'] == 'cart/checkout/review' ? t('Billing') : $panes[$key][title];
+    	break;
+			
+			case 'quotes':
+				$panes[$key][callback] = 'pscart_uc_checkout_pane_quotes';
+				$panes[$key][title] = $_GET['q'] == 'cart/checkout/review' ? t('Shipping') : $panes[$key][title];
+				//print_r($panes[$key]);
+    	break;
+			
+			case 'payment':
+				$panes[$key][title] = $_GET['q'] == 'cart/checkout/review' ? t('Payment') : $panes[$key][title];
+				$panes[$key][callback] = 'pscart_uc_checkout_pane_payment';
+    	break;
+			
+	  	case 'comments':
+		  	unset($panes[$key]);
+			break;
+    }
+  }
+}
+
+function pscart_uc_checkout_pane_customer($op, &$arg1, $arg2) {
+	global $user;
+	if($op == 'review'){
+    $review[] = array('title' => t('E-mail'), 'data' => check_plain($arg1->primary_email));
+		$review[] = array('title' => t('First Name'), 'data' => check_plain($arg1->delivery_first_name));
+		$review[] = array('title' => t('Last Name'), 'data' => check_plain($arg1->delivery_last_name));
+    return $review;
+  }else{
+		return uc_checkout_pane_customer($op, &$arg1, $arg2);
+	}
+}
+
+function pscart_uc_checkout_pane_quotes($op, &$arg1, $arg2){
+  global $user;
+	if($op == 'review'){
+    $context = array(
+      'revision' => 'themed',
+      'type' => 'line_item',
+      'subject' => array('order' => $arg1),
+    );
+    $result = db_query("SELECT * FROM {uc_order_line_items} WHERE order_id = %d AND type = '%s'", $arg1->order_id, 'shipping');
+    if ($line_item = db_fetch_array($result)) {
+      $context['subject']['line_item'] = $line_item;
+      $review[] = array('title' => '', 'data' => $line_item['title']);
+    }
+    return $review;
+  }else{
+	  return uc_checkout_pane_quotes($op, &$arg1, $arg2);
+	}
+}
+
+function pscart_uc_checkout_pane_payment($op, &$arg1, $arg2) {
+	if ($op == 'review') {
+    $review = array();
+    $review_data = _payment_method_data($arg1->payment_method, 'review');
+    if (empty($review_data)) {
+      $review_data = _payment_method_data($arg1->payment_method, 'name');
+    }
+    $review[] = array('title' => t('Paying by'), 'data' => $review_data);
+    $func = _payment_method_data($arg1->payment_method, 'callback');
+    if (function_exists($func)) {
+      $result = $func('cart-review', $arg1);
+      if (is_array($result)) {
+        $review = array_merge($review, $result);
+      }
+    }
+    return $review;
+  }
+  else {
+    return uc_checkout_pane_payment($op, $arg1, $arg2);
+  }
+}
+
+/**
+ * Implementation of hook_menu_alter().
+ */
+function pscart_menu_alter(&$items) {
+  $items['cart/checkout/line_items']['page callback'] = 'uc_checkout_preview_uc_payment_get_totals';
+}
+
+
+/**
+ * Implementation of hook_checkout_pane().
+ */
+function pscart_checkout_pane() {
+  $panes[] = array(
+    'id' => 'checkout_preview',
+    'title' => $_GET['q'] == 'cart/checkout/review' ? t('Order Detail') : t('Order total preview'),
+    'callback' => 'uc_checkout_pane_preview',
+    'weight' => 7,
+  );
+  return $panes;
+}
+
+function uc_checkout_pane_preview($op, &$arg1, $arg2) {
+  switch ($op) {
+    case 'view':
+      $contents['shown_total'] = array(
+        '#value' => '<div id="line-items-div"><em>'. t('Javascript must be enabled to view the order total preview.') .'</em></div>',
+        '#weight' => -20,
+      );
+
+      return array('description' => '', 'contents' => $contents);
+
+    case 'review':
+      $line_items = $arg1->line_items;
+      $items = _line_item_list();
+      foreach ($items as $item) {
+        if (isset($item['display_only']) && $item['display_only'] == TRUE) {
+          $result = $item['callback']('display', $arg1);
+          if (is_array($result)) {
+            foreach ($result as $line) {
+              $line_items[] = array(
+                'title' => $line['title'],
+                'amount' => $line['amount'],
+                'weight' => $item['weight']
+              );
+            }
+          }
+        }
+      }
+      usort($line_items, 'uc_weight_sort');
+
+      $context = array(
+        'revision' => 'themed',
+        'type' => 'line_item',
+        'subject' => array(
+          'order' => $arg1,
+        ),
+      );
+      $review = array();
+      foreach ($line_items as $line_item) {
+        $context['subject']['line_item'] = $line_item;
+        $review[] = array('title' => $line_item['title'], 'data' => uc_price($line_item['amount'], $context));
+      }
+      return $review;
+  }
+}
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function pscart_form_uc_cart_checkout_form_alter(&$form, &$form_state) {
+  if (variable_get('uc_pane_checkout_preview_enabled', TRUE)) {
+    unset($form['panes']['payment']['shown_total']);
+
+    if (!variable_get('uc_payment_show_order_total_preview', TRUE)) {
+      $form['panes']['payment']['current_total'] = array(
+        '#type' => 'hidden',
+        '#value' => NULL,
+      );
+
+      drupal_add_js(array('ucShowProgressBar' => TRUE), 'setting');
+    }
+  }
+}
+
+
+/**
+ * Overridden copy of uc_payment_get_totals() that removes the first line if the separate order preview pane is in use.
+ */
+function uc_checkout_preview_uc_payment_get_totals() {
+  $output = '';
+  if (is_array($_POST)) {
+    $order = unserialize($_POST['order']);
+  }
+
+  if ($order) {
+    usort($order->line_items, 'uc_weight_sort');
+
+    if (!variable_get('uc_pane_checkout_preview_enabled', TRUE)) {
+      $output = t('Order total preview:')
+              .' <span id="order-total-throbber"></span>';
+    }
+    $output .= '<table>';
+    $grand_total = 0;
+
+    $context = array(
+      'type' => 'line_item',
+      'subject' => array(
+        'order' => $order,
+      ),
+    );
+
+    foreach ($order->line_items as $line) {
+      if (!empty($line['title'])) {
+        $context['revision'] = 'themed';
+        $context['subject']['line_item'] = $line;
+
+        $output .= '<tr><td align="right"><b>'. $line['title'] .':</b></td>'
+                  .'<td align="right">'. uc_price($line['amount'], $context) .'</td></tr>';
+
+        if ($line['summed']) {
+          $context['revision'] = 'altered';
+        }
+      }
+    }
+
+    $context['revision'] = 'themed';
+    $context['type'] = 'amount';
+    unset($context['subject']);
+    $output .= '<tr><td align="right"><b>'. t('Order total:') .'</b></td>'
+              .'<td align="right">'. uc_price(uc_order_get_total($order), $context)
+              .'</td></tr></table>';
+  }
+
+  print $output;
+  exit();
+}

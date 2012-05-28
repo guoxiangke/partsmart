@@ -1,0 +1,6 @@
+name = Partsmart pages
+description =  manage parsmart pages
+package = Partsmart
+version = VERSION
+core = 6.x
+ 

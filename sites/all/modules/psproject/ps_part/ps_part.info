@@ -1,0 +1,6 @@
+; $Id$
+name = Partsmart Data 
+description = This model connect to the association of partsmart data , type, brand, model and product
+package = Partsmart
+
+core = 6.x

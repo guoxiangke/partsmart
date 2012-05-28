@@ -1,0 +1,6 @@
+; $Id$
+name = front page slide show
+description = This module provode slide show function , the contents can be configuraable
+package = Partsmart
+
+core = 6.x

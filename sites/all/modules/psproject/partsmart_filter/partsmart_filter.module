@@ -1,0 +1,175 @@
+<?php
+// $Id$  @author: Devin 2011-12-01
+
+
+
+define("PRODUCT_TYPE_VID", "1");
+define("PRINTER_MANUFACTURER_VID", "2");
+define("COPYER_MANUFACTURER_VID", "5");
+define("CATRIDGE_MANUFACTURER_VID", "7");
+
+
+
+function partsmart_filter_init() {
+     drupal_add_js(drupal_get_path('module','partsmart_filter').'/partsmart_filter.js','module');
+  //   drupal_add_css(drupal_get_path('module','partsmart_filter').'/psstyle.css','module');
+}
+
+
+/**
+ * Implementation of hook_menu().
+ */
+function partsmart_filter_menu() {
+  $items = array(); 
+ 
+  
+  $items['partsmartfilter/filter/%/%/%'] = array(
+        'title' => t('Get the serach Result'),
+        'page callback' => 'partsmart_filter_get_result',
+        'page arguments' => array(2,3,4),
+        'access arguments' => array('access contents'),
+		'type' => MENU_CALLBACK,
+        'weight' => 10,
+  );
+  
+  $items['partsmartfilter/ajax/result'] = array(
+        'title' => t('Get the serach Result'),
+        'page callback' => 'partsmart_filter_ajax_get_result',
+        'page arguments' => null,
+        'access arguments' => array('access contents'),
+		'type' => MENU_CALLBACK,
+        'weight' => 10,
+  );
+  
+
+
+  return $items;
+}
+
+
+/*hook_block
+**
+*/
+function partsmart_filter_block($op = 'list', $delta = 0) {
+  switch ($op) {
+    case 'list' :
+      $blocks[0]['info'] = t('Parts Search');
+	  $blocks[0]['cache']=BLOCK_NO_CACHE;
+            
+      return $blocks;
+      break;
+    case 'view' :      
+       switch ($delta) {
+			case '0':           
+            $block['subject'] = t('Parts Search');
+            $block['content'] = partsmart_filter_search_box();           
+			break;	        
+       }      
+       return $block;
+  }
+  
+}
+
+function partsmart_filter_search_box(){
+	$output = '';
+	$output .= drupal_get_form('partsmart_filter_search_box_form');
+	return $output; 
+}
+
+function partsmart_filter_search_box_form(&$form_state) {
+	$form=array();  
+	
+	$product_options =  array();
+	$terms = taxonomy_get_tree(PRODUCT_TYPE_VID);
+	
+	foreach( $terms as $tid=>$term ){
+			$product_options[$term->tid]= $term->name;
+	}
+	
+	$form['product'] = array(
+			'#type' => 'select', 
+			'#title' => t('Select a Product'), 
+			'#default_value' =>'',
+			'#multiple' =>FALSE,
+			'#options' => $product_options,
+			'#size'=>0,
+			'#required' => true,			
+	);
+	$manufacture_options =  array();
+	$terms = taxonomy_get_tree(PRINTER_MANUFACTURER_VID);
+	
+	$manufacture_options[0]= t('Select a Manufacturer');
+	
+	foreach( $terms as $tid=>$term ){
+	//		$manufacture_options[$term->tid]= $term->name;
+	}
+	
+	$form['manufacturer'] = array(
+			'#type' => 'select', 
+			'#title' => t('Select a Manufacturer'), 
+			'#default_value' => 0,
+			'#multiple' =>FALSE,
+			'#options' => $manufacture_options,
+			'#size'=>0,
+			'#required' => true,			
+	);
+	$model_options[0]= t('Select a model');
+	
+	foreach( $terms as $tid=>$term ){
+			$manufacture_options[$term->tid]= $term->name;
+	}
+	
+	$form['model'] = array(
+			'#type' => 'select', 
+			'#title' => t('Select a Model'), 
+			'#default_value' => 0,
+			'#multiple' =>FALSE,
+			'#options' => $model_options,
+			'#size'=>0,
+			'#required' => true,			
+	);
+	$form['search-submit'] = array(
+			'#type' => 'submit', 
+			'#value' =>  t('Search'),
+			'#weight' =>13,
+    );
+	return $form; 
+}
+
+function partsmart_filter_search_box_form_submit($form, &$form_state){
+	$values = $form_state['values'];
+	$product = $values['product'];
+	$manufacturer = $values['manufacturer'];
+	$model = $values['model'];
+	drupal_goto('partsmartfilter/filter/'.$product.'/'.$manufacturer.'/'.$model);
+}
+
+
+/*menu callback 
+**
+*/
+function partsmart_filter_get_result($product, $manufacturer, $model){
+	$output = '';
+	$view_name = 'partfilter';    
+    $result = views_get_view_result($view_name,'Defaults', $product, $manufacturer);  
+    $count = count($result);
+	$output .= $count;
+	foreach( $result as $seq=> $item ){	
+	 
+			$node = node_load($item->nid);
+			$output .='	<li><a href="'.url('node/'.$node->nid).'"><img src="'.imagecache_create_url("s158x158", $node->field_image_cache[0]['filepath']).'" alt=""></a></li>';
+		
+	}
+	
+	return $output; 
+	
+}
+
+/*menu callback 
+**
+*/
+
+function partsmart_filter_ajax_get_result(){
+
+echo 'hello';
+}

@@ -1,0 +1,23 @@
+name = Pastsmart
+description = Tableless, recolorable, multi-column, fluid width theme (default).
+version = VERSION
+core = 6.x
+engine = phptemplate
+
+regions[taxonomy_search_box] = Custom Search Box
+
+stylesheets[all][] = css/index.css
+stylesheets[all][] = css/basic.css
+stylesheets[all][] = style.css
+stylesheets[all][] = css/jquery.jqzoom.css
+stylesheets[all][] = css/dale_add.css
+scripts[] = js/jquery.livequery.js
+scripts[] = js/pstheme.js
+scripts[] = js/script.js
+scripts[] = js/autocomplete.js
+scripts[] = js/jquery.scrollTo.js
+scripts[] = js/jquery.jqzoom-core.js
+scripts[] = js/partscategory.js
+scripts[] = js/frontpage.js
+scripts[] = js/jquery.tinycarousel.min.js
+scripts[] = js/jquery.ba-hashchange.js

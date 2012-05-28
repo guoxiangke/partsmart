@@ -1,0 +1,9 @@
+@charset "utf-8";
+/* CSS Document */
+.contex p.wholesale_price {
+clear: both;
+border-top: none;
+padding: 5px 0;
+line-height: 10px;
+margin-left:90px;
+}

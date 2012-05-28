@@ -1,0 +1,488 @@
+<?php
+
+/*
+
+ */
+
+// define("ps_part_FLAG_ID", "5");
+
+function ps_part_init() {
+    
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function ps_part_menu() {
+
+
+
+    /* admin part */
+    $items['admin/settings/pspart'] = array(
+        'title' => t('partsmart part management'),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('ps_part_admin_setting_form'),
+        'access arguments' => array('admin nodes'),
+    );
+    
+     $items['admin/settings/pspart/audtit'] = array(
+        'title' => t('partsmart part data audit'),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('ps_part_admin_audit_form'),
+        'access arguments' => array('admin nodes'),
+    );
+     
+
+    return $items;
+}
+
+/* impl. hook_form_alter
+ * *
+ */
+
+function ps_part_form_alter(&$form, &$form_state, $form_id) {
+
+    $module_path = drupal_get_path('module', 'ps_part');
+
+    
+    if ($form_id == 'product_node_form') {
+      drupal_add_js(drupal_get_path('module','ps_part').'/ps_part.js');
+      $taxonomy = $form['#node']->taxonomy;
+      if(isset($taxonomy)) {
+         foreach($taxonomy as $tid=>$term){
+             if($term->vid == 1) { // product type
+                 $product_type = $tid; 
+             }
+         }
+      }
+    }
+    
+ /*  
+    drupal_add_js('jQuery(document).ready(function() { showProductForm('.$product_type.') });',
+						'inline');
+ 
+  */      
+   /* if($product_type ==3) { //printer
+        unset($form['taxonomy'][3]);
+        unset($form['taxonomy'][6]);
+        unset($form['#field_info']['field_part_prtbrand']);
+        unset($form['#field_info']['field_part_cpbrand']);
+        
+    }
+   */
+}
+
+/* impl , hook_nodeapi 
+ * *  After the user create a sponsor node,  if the user is anomyous , then create a new user firstly, then 
+ * *  change the node author before save to the db
+ * *
+ */
+
+function ps_part_nodeapi(&$node, $op, $teaser, $page) {
+    switch ($op) {
+        case 'load':
+            if ($node->type == 'product') {
+                $node->brands = ps_part_get_node_brands($node->nid);
+            }
+            break;
+
+        case 'view':
+            break;
+        case 'insert':
+            if ($node->type == 'product') {
+                 foreach($node->taxonomy as $term ){
+                        if($term->vid == 1) { //product type
+                            $product_type = $term->tid;
+                        }
+                        
+                        if($term->vid == 6) { //Copier Parts Category
+                            $product_category = $term->tid;
+                        }
+                        
+                        if($term->vid == 4) { //Cartridge Parts Category
+                            $product_category = $term->tid;
+                        }
+                        if($term->vid == 3) { //Printer Parts Category
+                            $product_category = $term->tid;
+                        }
+                       
+                        
+                        if($term->vid == 7) { //Catridge Manufacturer
+                            $brand = $term->tid;
+                        }
+                        
+                        
+                    }
+            }
+
+            break;
+        case 'delete':
+            if ($node->type == 'product') {
+                db_query('delete from {ps_part} where nid=%d',$node->nid);
+            }
+        break;
+        
+        case 'update':
+            if ($node->type == 'product') {
+                 foreach($node->taxonomy as $vid=>$tid ){
+                        if($vid == 1) { //product type
+                            $product_type = $tid;
+                        }
+                        
+                        if($vid == 6) { //Copier Parts Category
+                            $product_category = $tid;
+                        }
+                        
+                        if($vid == 4) { //Cartridge Parts Category
+                            $product_category = $tid;
+                        }
+                        if($vid == 3) { //Printer Parts Category
+                            $product_category = $tid;
+                        }
+                       
+                        
+                        if($vid == 7) { //Catridge Manufacturer
+                            $brand = $tid;
+                        }
+                        
+                        
+                    }
+                    
+                   if($product_type == 2){
+                       $brand = $node->field_part_cpbrand[0]['value'];
+                       $model_nid = $node->field_part_copier_models[0]['nid'];
+                   }
+                   if($product_type == 3){
+                       $brand = $node->field_part_cpbrand[0]['value'];
+                       $model_nid = $node->field_part_copier_models[0]['nid'];
+                   }
+                   
+           /*        
+                   $exist = db_result(db_query("select count(*) from {ps_part} where nid=%d and model=%d and brand=%d", $node->nid, $model_nid, $brand));
+                   if($exist < 1){
+                    db_query("insert into {ps_part} (nid,type,brand,category,model) VALUES(%d,%d,%d,%d,%d)", $node->nid, $type , $brand,  $product_category,  $model_nid);
+                   }else{
+                      
+                       db_query("UPDATE {ps_part} set model=%d where nid=%d and model=%d and brand=%d", $node->nid, $model_nid, $brand);
+                   }
+            
+            */
+            
+                  
+            }
+        break;
+        
+    }
+}
+/* menu  callback
+ * 
+ */
+function ps_part_admin_audit_form(){
+    $form['brand'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Brand for query'),
+    );
+    
+    $form['query_submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Query'),
+        
+    );
+
+
+    return $form;
+}
+
+function ps_part_admin_audit_form_submit($form, &$form_state) {
+   $brand = $form_state['values']['brand'];
+
+   $sql = "select DISTINCT(p.nid) from {ps_part} as p where p.brand=%d";
+   $result =db_query($sql, $brand);
+   $count = 0; 
+   $output = '';
+   $a = array(
+     'FG6-6039-FM3',
+'FILMFC220',
+'HE-FC220-110V',
+'HE-FC220-220V',
+'HE-IR2016-110V',
+'HE-IR2016-220V',
+'HE-IR2200-110V',
+'HE-IR2200-220V',
+'HE-IR2318-220V',
+'HE-IR3300-110V',
+'HE-IR3300-220V',
+'HE-IR3570-110V',
+'HE-IR3570-220V',
+'FA2-1911-070',
+'FA2-5937-000',
+'FA2-8286-040',
+'FA2-9036-000',
+'FA4-0561-030',
+'FA4-4422-000',
+'FA4-4662-020',
+'FA5-1501-000',
+'FA5-2956-000',
+'FA5-7429-000',
+'FA5-7730-000',
+'FA6-3921-000',
+'FA6-7987-000',
+'FB1-1512-000',
+'FB1-5921-020',
+'FB1-5921-SLV',
+'FB1-9212-000',
+'FB2-7200-000',
+'FH7-3029-CLN',
+'FH7-3044-000',
+'FH7-3049-000',
+'FH7-3056-020',
+'FH7-3076-000',
+'FH7-3166-000',
+'FH7-3215-000',
+'FH7-4065-000',
+'FH7-4087-CLN',
+'FH7-4104-000',
+'FH7-4108-000',
+'FH7-4113-000',
+'FH7-4117-000',
+'FH7-4126-000',
+'FH7-4130-000',
+'FH7-4165-000',
+'FH7-4169-000',
+'FH7-4173-000',
+'FH7-4181-000',
+'FH7-4185-000',  
+   );
+   $b = array();
+   while($item=db_fetch_object($result)){
+       $node = node_load($item->nid);
+      // $output .= l($node->title, 'node/'.$item->nid).'was found<br>';
+        $b[]=$node->title;     
+       $count ++;
+   }
+   
+   foreach($a as $title){
+       if(in_array($title, $b)){
+           
+       }else{
+           $output .= $title.'was not found<br>';
+       }
+   }
+   drupal_set_message($count.'part found');
+   drupal_set_message($output);
+}
+
+
+function ps_part_admin_setting_form() {
+    $form['part'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Provisioning the ps_part db table, this only done once'),
+    );
+    $form['part']['type'] = array(
+        '#type' => 'select',
+        '#title' => t('Select the product type'),
+        '#default_value' => variable_get('feed_item_length', 'teaser'),
+        '#required' => TRUE,
+        '#options' => array(
+             '0' => t('Please select'),
+      //      '1' => t('Printer'),
+      //      '2' => t('Copier'),
+      //      '3' => t('Cartridge'),
+        ),
+    );
+
+    $form['part']['prosionvisioning_submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Provisioning the ps_part db table, must select a type and have a cart_model_asso.csv files'),
+        '#submit' => array('ps_part_provisioning_submit'),
+    );
+
+
+    return $form;
+}
+
+
+/* impoart the model and part assocation 
+ * 
+ */
+function ps_part_provisioning_submit($form, &$form_state) {
+   $type = $form_state['values']['type'];
+   if(  $type == 1){
+        $newfile = drupal_get_path('module', 'ps_part') . '/csv/printer_model.csv';
+   }
+   if( $type  == 2){
+        $newfile = drupal_get_path('module', 'ps_part') . '/csv/copier_model.csv';
+   }
+   if( $type == 3){
+        $newfile = drupal_get_path('module', 'ps_part') . '/csv/cart_part_model_asso.csv';
+   }
+   
+    $fd = fopen($newfile, 'rb'); // File will get closed by PHP on return.
+    if (empty($fd)) {
+        $message = t('The file import failed, because the file %filename could not be read.', array('%filename' => $file->filename));
+        drupal_set_message($message, 'error');
+        return FALSE;
+    }
+    // If not in 'safe mode', increase the maximum execution time.
+    if (!ini_get('safe_mode')) {
+        set_time_limit(2400);
+    }
+    $counter = $nocounter = 0;
+    $exist_assoc_counter = 0;
+    $msg = '';
+    $status = '';
+    $lineno = 0; // Current line
+    $bid = -1;
+    $bkid = 1;
+    global $user;
+    $output = '';
+    $output .= '<ul>';
+    
+    while (!feof($fd)) {
+        $line = fgets($fd, 1 * 100); // A line should not be this long.
+        $lineno++;
+        $line = trim(strtr($line, array("\\\n" => '')));
+        $data = array();
+        if (strlen($line) > 0) {
+            list($oem, $model) = explode('|', $line);
+
+            $nid = 0;
+            if ($oem != '') {
+                $nid = db_result(db_query("select nid from {node} where type='product' and '%s' like title", $oem));
+                if ($nid) {
+                    $node = node_load($nid);
+                   
+                    foreach($node->taxonomy as $term ){
+                        if($term->vid == 1) { //product type
+                            $product_type = $term->tid;
+                        }
+                        
+                        if($term->vid == 6) { //Copier Parts Category
+                            $product_category = $term->tid;
+                        }
+                        
+                        if($term->vid == 4) { //Cartridge Parts Category
+                            $product_category = $term->tid;
+                        }
+                        if($term->vid == 3) { //Printer Parts Category
+                            $product_category = $term->tid;
+                        }
+                       
+                        
+                        if($term->vid == 7) { //Catridge Manufacturer
+                            $brand = $term->tid;
+                        }
+                        
+                        
+                    }
+                   
+                    if($type == 3) {
+                    $model_nid = db_result(db_query("select nid from {node} where type='cart_model' and title like '%s'", $model));
+                    } 
+                    if($type == 2) {
+                     $model_nid = db_result(db_query("select nid from {node} where type='copier_model' and title like '%s'", $model));
+                     if($model_nid){
+                        $model_node = node_load($model_nid);
+                         $brand =  $model_node->field_model_brand[0]['value'];
+                   
+                        } else{
+                        drupal_set_message('not found model');
+                       }
+                     $product_type = 2; 
+                    }
+                    
+                    if($type == 1) { //handle printer
+                     $model_nid = db_result(db_query("select nid from {node} where type='printer_model' and title like '%s'", $model));
+                     if($model_nid){
+                        $model_node = node_load($model_nid);
+                         foreach($model_node->taxonomy as $term ){ 
+                            if($term->vid == 2) { //Printer Manufacturer
+                                $brand = $term->tid;
+
+                            }
+                        }
+                        
+                    
+                        } else{
+                        drupal_set_message($model.' not found model');
+                       }
+                     $product_type = 1; 
+                    }
+                   $exist = db_result(db_query("select count(*) from {ps_part} where nid=%d and model=%d and brand=%d", $node->nid, $model_nid, $brand));
+                   if($exist < 1){
+                 //   db_query("insert into {ps_part} (nid,type,brand,category,model) VALUES(%d,%d,%d,%d,%d)", $node->nid, $type , $brand,  $product_category,  $model_nid);
+                    $output .= '<li>'.l($oem, 'node/'.$nid).'&nbsp was found and model is '.$model_nid.'&nbsp brand tid is='.$brand.'</li>';
+                    $counter++;
+                   
+                    
+                   }
+                    //	}
+                }else{
+                    $output .= '<li>'.l($oem, 'node/'.$nid).'&nbsp was not </li>';
+                    $nocounter ++;
+                }
+            }else{
+                $output .='<li>emtpy</li>';
+                $nocounter ++;
+            }
+        }
+    }
+
+    $output .= '</ul>';
+
+    drupal_set_message('Total ' . $counter . '&nbsp recored were inserted, total'.$nocounter.'was not found');
+    drupal_set_message($output);
+
+    $form_state['redirect'] = 'admin/settings/pspart';
+}
+
+/*
+ * get a node brands
+ */
+function ps_part_get_node_brands($nid){
+    $brands = array();
+    $result = db_query("select brand from {ps_part} where nid=%d",$nid);
+    while($item = db_fetch_object($result)){
+        $term = taxonomy_get_term($item->brand);
+        $brands[$item->brand]=$term->name;
+    }
+    return $brands;
+}
+
+
+/*
+ * get a node brands
+ */
+function ps_part_get_node_conter_by_model($model_nid){
+    
+    return db_result(db_query("select count(nid) from {ps_part} where model=%d",$model_nid));
+  
+}
+
+
+/*
+ * get all models of a  brand
+ */
+function ps_part_get_model_list_by_brand($brand){
+    $models = array();
+    $result = db_query("select DISTINCT(model) from {ps_part} where brand=%d",$brand);
+    while($item= db_fetch_object($result)){
+        $models[] = $item->model;
+    }
+    return $models; 
+}
+
+
+/*
+ * get all parts of a  brand
+ */
+function ps_part_get_part_list_by_brand($brand){
+    $models = array();
+    $result = db_query("select DISTINCT(nid) from {ps_part} where brand=%d",$brand);
+    while($item= db_fetch_object($result)){
+        $models[] = $item->model;
+    }
+    return $models; 
+}
+
+

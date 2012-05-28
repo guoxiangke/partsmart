@@ -1,0 +1,94 @@
+<?php
+
+
+/*  
+*/
+
+define('SLIDESHOW_NODE_NID',4082);
+
+
+function slideshow_init() {
+      $module_path = drupal_get_path('module','slideshow');
+	drupal_add_js($module_path.'/js/slideshow.js');
+    drupal_add_css($module_path.'/slideshow.css');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function slideshow_menu() {
+  $items = array();  
+   $items['testslide'] = array(
+    'title' => t(''),
+    'page callback' => '_slideshow_testpage',
+    'page arguments' => null,
+    'type' => MENU_CALLBACK,
+	'access arguments'=>array('access content'),
+  );
+  
+  return $items;
+}
+
+/**
+ * Implementation of hook_theme().
+ *
+ *
+ */ 
+function slideshow_theme() {
+  return array(
+   'slideshow_display' => array(
+	  'template' => 'slideshow-display',
+      'arguments' => array(            
+            'slides' =>null,
+			'slideLeftArrow' =>'',
+			'slideRightArrow' =>'',           
+        ),
+	),
+    
+    
+  );
+}
+/* hook_block
+ *
+ */
+ 
+
+function slideshow_block($op = 'list', $delta = 0, $edit = array()){
+	switch($op){
+		case 'list':			
+			$blocks[0]['info']=t('Homepage slideshow');
+			$blocks[0]['cache']=BLOCK_NO_CACHE;
+            
+    
+			return $blocks;
+		case 'view':
+			switch($delta){
+				case 0:
+					$block['subject']=t('Homepage slideshow');
+					$block['content'] = slideshow_home_slider_show();
+					break;
+			
+			}
+			return $block;
+	}
+}
+
+
+function _slideshow_testpage () {
+ $output = '';
+ $slide_block = module_invoke('slideshow','block','view',0); 
+ 
+ return  $slide_block['content']; 
+}
+
+function slideshow_home_slider_show() {
+   $module_path = drupal_get_path('module','slideshow');
+    global $base_url; 
+   $home_slider_node=node_load(SLIDESHOW_NODE_NID);
+   $right_arrow = '<img  border="0" src="'.$base_url.'/'.$module_path.'/images/slider-right-arrow.png'.'"/>';
+   $left_arrow = '<img  border="0" src="'.$base_url.'/'.$module_path.'/images/slider-left-arrow.png'.'"/>';
+	  
+   $output .=theme('slideshow_display',$home_slider_node->field_page_image, $left_arrow , $right_arrow );
+   return $output;
+}
+

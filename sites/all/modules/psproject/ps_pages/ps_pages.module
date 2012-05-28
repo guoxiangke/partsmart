@@ -1,0 +1,2328 @@
+<?php
+
+function ps_pages_init() {
+    drupal_add_css(drupal_get_path('module', 'ps_pages') . '/psstyle.css', 'module');
+}
+
+function ps_pages_perm() {
+    return array('show partSmart internal data');
+}
+
+/* function to see if allow to view the internal data 
+ * * based on the enable and estore field
+ *  @param , $enable, enable field 
+ *  @param, $estore, estore field
+ */
+
+function ps_page_shall_display_part_info($enable, $estore) {
+    global $user;
+    $show_part_info = true;
+    $roles = array_keys($user->roles);
+
+    if (in_array(EMPLOYEE_RID, $roles)) { // the current user is a employee
+        if (!$enable) {
+            $show_part_info = false;
+        }
+    }
+
+    if (in_array(WHOLESALE_RID, $roles)) { // the current user is wholesale
+        if ($enable) {
+            $show_part_info = true;
+        } else {
+            $show_part_info = false;
+        }
+    }
+
+
+    if (in_array(RETAIL_RID, $roles)) { // the current user is retail user
+        if ($enable) {
+            if ($estore) {
+                $show_part_info = true;
+            } else {
+                $show_part_info = false;
+            }
+        } else {
+
+            $show_part_info = false;
+        }
+    }
+
+
+    return $show_part_info;
+}
+
+function ps_pages_menu() {
+		
+	$items['printer'] = array(
+        'title' => 'Printer',
+        'page callback' => 'parts_list',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+        'file' => 'ps_pages.inc',
+    );
+	
+	$items['copier'] = array(
+        'title' => 'Copier',
+        'page callback' => 'parts_list',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+        'file' => 'ps_pages.inc',
+    );
+	
+	$items['cartridge'] = array(
+        'title' => 'Cartridge',
+        'page callback' => 'parts_list',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+        'file' => 'ps_pages.inc',
+    );
+		
+	$items['printer/new'] = array(
+        'page callback' => 'parts_new',
+				'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'ps_pages.inc',
+    );
+		
+	$items['copier/new'] = array(
+        'page callback' => 'parts_new',
+				'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'ps_pages.inc',
+   );
+	 
+	 $items['cartridge/new'] = array(
+        'page callback' => 'parts_new',
+				'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'ps_pages.inc',
+    );
+	
+	$items['printer/best'] = array(
+        'page callback' => 'parts_best',
+				'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'ps_pages.inc',
+    );
+	
+	$items['copier/best'] = array(
+        'page callback' => 'parts_best',
+				'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'ps_pages.inc',
+    );
+		
+	$items['cartridge/best'] = array(
+        'page callback' => 'parts_best',
+				'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+        'file' => 'ps_pages.inc',
+    );
+	
+	$items['printer/brand'] = array(
+        'page callback' => 'parts_brand',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+				'file' => 'ps_pages.inc'
+    );
+	
+	$items['copier/brand'] = array(
+        'page callback' => 'parts_brand',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+				'file' => 'ps_pages.inc'
+    );
+	
+	$items['cartridge/brand'] = array(
+        'page callback' => 'parts_brand',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+				'file' => 'ps_pages.inc'
+    );
+		
+	$items['printer/category'] = array(
+        'page callback' => 'parts_category',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+				'file' => 'ps_pages.inc'
+    );
+	
+	$items['copier/category'] = array(
+        'page callback' => 'parts_category',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+				'file' => 'ps_pages.inc'
+    );	
+	
+	$items['cartridge/category'] = array(
+        'page callback' => 'parts_category',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+				'file' => 'ps_pages.inc'
+    );
+	
+	$items['ajax_mainmodel'] = array(
+        'page callback' => 'ajax_mainmodel',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+		
+	$items['ajax_category'] = array(
+        'page callback' => 'ajax_category',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+	
+	$items['ajax_partslist'] = array(
+        'page callback' => 'ajax_partslist',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+		
+	$items['ajax_newpartslist'] = array(
+        'page callback' => 'ajax_newpartslist',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+		
+	$items['ajax_filter_brand'] = array(
+        'page callback' => 'ajax_filter_brand',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+		
+	$items['ajax_parts_autocomplete'] = array(
+        'page callback' => 'ajax_parts_autocomplete',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+	
+	return $items;
+}
+
+function ajax_parts_autocomplete() {
+	$parts = strtolower($_GET["parts"]);
+	if (!$parts) return;
+	$matches = array();
+	$result = db_query('SELECT * FROM {node} WHERE type IN ("%s","%s","%s") AND title LIKE "%%%s%%" LIMIT 10',"printer","copier","catridge",$parts);
+	while($item = db_fetch_object($result)){
+		
+		$node = node_load($item->nid);
+		array_push($matches, array(
+			"name" => $node->title,
+			"product" => $node->type,
+			"nid" => $node->nid
+		));
+	}
+	
+	drupal_json($matches);
+}
+
+function ajax_filter_brand() {
+	$vid = intval($_GET['vid']);
+	if(!$vid) return;
+	$matches = array();
+	$terms = taxonomy_get_tree($vid,0,-1,1);
+	
+	drupal_json($terms);
+
+}
+
+function ajax_category() {
+	$tid = intval($_GET['tid']);
+	if(!$tid) return;
+	$matches = array();
+	$terms = taxonomy_get_children($tid);
+	foreach($terms as $value) {
+		$matches[] = array(
+			"tid" => $value->tid,
+			"name" => $value->name
+			);
+	}
+	drupal_json($matches);
+}
+
+function ajax_mainmodel() {
+	$tid = intval($_GET['tid']);
+	if(!$tid) return;
+	$matches = array();
+	$terms = taxonomy_get_children($tid);
+	foreach($terms as $value) {
+		$matches[] = array(
+			"tid" => $value->tid,
+			"name" => $value->name
+			);
+	}
+	drupal_json($matches);
+}
+
+function ajax_partslist() {
+	global $user;
+	global $base_url;
+	global $base_path;
+	global $pager_page_array;
+	global $pager_total;
+	global $pager_total_items;
+
+	drupal_set_title('');
+	
+	$where = array();
+	$where_value = array();
+	$join = array();
+	$order_by = array();
+	$brand_num = array();
+	$category_num = array();
+	$model_num = array();
+	$subcategory_num = array();
+	$color_num = array();
+	
+	$parts_type = $_GET['parts_type'];
+	$where_value[] = $parts_type;
+	
+	$color = intval($_GET['color']);
+	$model = intval($_GET['model']);
+	$brand = intval($_GET['brand']);
+	$category = intval($_GET['category']);
+	$subcategory = intval($_GET['subcategory']);
+	$sortby = intval($_GET['sortby']);
+	$viewlist = intval($_GET['viewlist']);
+	$limit = intval($_GET['limit']);
+	if($limit == 0) $limit = 10;
+	
+	switch ($parts_type) {
+		case 'printer' :
+			$brand_vid = 2;
+			$category_vid = 3;
+		break;
+		case 'copier' :
+			$brand_vid = 5;
+			$category_vid = 6;
+		break;
+		case 'cartridge' :
+			$brand_vid = 7;
+			$category_vid = 4;
+		break;
+	}
+	
+	switch ($sortby)
+	{
+	case 0:
+		$sortby_html = '<div class="view_list">Sort By<select id="pagsortby"><option value="0" selected="true">By Default</option><option value="1"> By Release Date </option><option value="2"> By Price Range Low to High</option><option value="3">By Price Range High to Low</option></select></div>';
+  break;
+	
+	case 1:
+		$join[] = 'RIGHT JOIN {content_field_part_release_date} d ON d.nid = n.nid';
+  	$order_by[] = 'ORDER BY d.field_part_release_date_value DESC';
+		$sortby_html = '<div class="view_list">Sort By<select id="pagsortby"><option value="0">By Default</option><option value="1" selected="true"> By Release Date </option><option value="2"> By Price Range Low to High</option><option value="3">By Price Range High to Low</option></select></div>';
+  break;
+	
+	case 2:
+		$join[] = 'RIGHT JOIN {content_field_part_unitprice} p ON n.nid = p.nid';
+		
+		$order_by[] = 'ORDER BY p.field_part_unitprice_value';
+		$sortby_html = '<div class="view_list">Sort By<select id="pagsortby"><option value="0">By Default</option><option value="1"> By Release Date </option><option value="2" selected="true"> By Price Range Low to High</option><option value="3">By Price Range High to Low</option></select></div>';
+  break;
+	
+	case 3:
+		$join[] = 'RIGHT JOIN {content_field_part_unitprice} p ON n.nid = p.nid';
+		
+		$order_by[] = 'ORDER BY p.field_part_unitprice_value DESC';
+		$sortby_html = '<div class="view_list">Sort By<select id="pagsortby"><option value="0">By Default</option><option value="1"> By Release Date </option><option value="2"> By Price Range Low to High</option><option value="3" selected="true">By Price Range High to Low</option></select></div>';
+  	
+  break;
+	}
+	
+	//laser
+	if($color == 1) {
+			$where[] = 'AND n.nid IN (SELECT cn.nid FROM {content_field_part_color} cn WHERE cn.field_part_color_value IN (1,3))';
+	}
+	if($color == 2) {
+			$where[] = 'AND n.nid IN (SELECT cn.nid FROM {content_field_part_color} cn WHERE cn.field_part_color_value IN (2,3))';
+	}
+	
+	if($brand > 0 && $model == 0) {
+		$where[] = 'AND n.nid IN (SELECT tn.nid FROM {node_brand} tn WHERE tn.brand = %d)';
+		$where_value[] = $brand;
+	}
+	
+	if($model > 0) {
+		$where[] = 'AND n.nid IN (SELECT tn.nid FROM {node_brand} tn WHERE tn.model = %d)';
+		$where_value[] = $model;
+	}
+
+	if($category > 0 && $subcategory == 0) {
+		$where[] = 'AND n.nid IN (SELECT tn.nid FROM {node_category} tn WHERE tn.category = %d)';
+		$where_value[] = $category;
+	}
+	
+	if($subcategory > 0) {
+		$where[] = 'AND n.nid IN (SELECT tn.nid FROM {node_category} tn WHERE tn.subcategory = %d)';
+		$where_value[] = $subcategory;
+	}
+	
+	$output = '';
+	
+	$sql =  "SELECT n.nid FROM {node} n ". " " . implode(' ',$join) . " " ." WHERE n.type = '%s'" . ' ' .implode(' ', $where) . ' ' .  implode(' ',$order_by);
+	
+	$parts_terms = taxonomy_get_tree($brand_vid,0,-1,1);
+	foreach($parts_terms as $value) {
+		$sqlc =  "SELECT COUNT(n.nid) FROM {node} n ". " " . implode(' ',$join) . " " ." WHERE n.type = '%s'" . ' ' .implode(' ', $where) . 'AND n.nid IN (SELECT tn.nid FROM {node_brand} tn WHERE tn.brand = %d)';
+		$wherenum_brand_value = $where_value;
+		$wherenum_brand_value[]= $value->tid;
+		$brand_num[] = array(
+			'num' => db_result(db_query($sqlc,$wherenum_brand_value)),
+			'tid' => $value->tid
+		);
+	}
+	
+	if($brand>0){
+		$parts_terms = taxonomy_get_children($brand);
+		foreach($parts_terms as $value) {
+			$models = taxonomy_get_children($value->tid);
+			$models_tid = array_keys($models);
+			$sqlc =  "SELECT COUNT(n.nid) FROM {node} n ". " " . implode(' ',$join) . " " ." WHERE n.type = '%s'" . ' ' .implode(' ', $where) . 'AND n.nid IN (SELECT tn.nid FROM {node_brand} tn WHERE tn.model = %d)';
+			$wherenum_value = $where_value;
+			$wherenum_value[] = $value->tid; 
+			$model_num[] = array(
+				'name' => $value->name,
+				'num' => db_result(db_query($sqlc,$wherenum_value)),
+				'tid' => $value->tid
+			);
+		}
+	}
+		
+	$parts_terms = taxonomy_get_tree($category_vid,0,-1,1);
+	foreach($parts_terms as $value) {
+		$sqlc =  "SELECT COUNT(n.nid) FROM {node} n ". " " . implode(' ',$join) . " " ." WHERE n.type = '%s'" . ' ' .implode(' ', $where) . 'AND n.nid IN (SELECT tn.nid FROM {node_category} tn WHERE tn.category = %d)';
+		$wherenum_category_value = $where_value;
+		$wherenum_category_value[]= $value->tid;
+		$category_num[] = array(
+			'num' => db_result(db_query($sqlc,$wherenum_category_value)),
+			'tid' => $value->tid
+		);
+	}
+	
+	if($category>0){
+		$parts_terms = taxonomy_get_children($category);
+		foreach($parts_terms as $value) {
+			$models = taxonomy_get_children($value->tid);
+			$models_tid = array_keys($models);
+			$sqlc =  "SELECT COUNT(n.nid) FROM {node} n ". " " . implode(' ',$join) . " " ." WHERE n.type = '%s'" . ' ' .implode(' ', $where) . 'AND n.nid IN (SELECT tn.nid FROM {node_category} tn WHERE tn.subcategory = %d)';
+			$wherenum_value = $where_value;
+			$wherenum_value[] = $value->tid; 
+			$subcategory_num[] = array(
+				'name' => $value->name,
+				'num' => db_result(db_query($sqlc,$wherenum_value)),
+				'tid' => $value->tid
+			);
+		}
+	}
+	
+	$sqlc = "SELECT COUNT(n.nid) FROM {node} n ". " " . implode(' ',$join) . " " ." WHERE n.type = '%s'" . ' ' .implode(' ', $where) . 'AND n.nid IN (SELECT cn.nid FROM {content_field_part_color} cn WHERE cn.field_part_color_value IN (1,3))';
+	$color_num[] = array(
+		'num' => db_result(db_query($sqlc,$where_value)),
+		'tid' => '1'
+	);
+	
+	$sqlc = "SELECT COUNT(n.nid) FROM {node} n ". " " . implode(' ',$join) . " " ." WHERE n.type = '%s'" . ' ' .implode(' ', $where) . 'AND n.nid IN (SELECT cn.nid FROM {content_field_part_color} cn WHERE cn.field_part_color_value IN (2,3))';
+	$color_num[] = array(
+		'num' => db_result(db_query($sqlc,$where_value)),
+		'tid' => '2'
+	);
+	
+	$result = pager_query($sql, $limit, 0, NULL, $where_value);
+		if($viewlist==0) {
+  			while ($item = db_fetch_object($result)) {
+				$node = node_load($item->nid);
+			
+				if(file_exists('sites/default/files/product/' . $node->title .'.jpg')) {
+					$imgs = '<a href="'.$base_path.'node/'.$node->nid.'"><img src="'.imagecache_create_url("s93x104",'sites/default/files/product/' . $node->title .'.jpg'). '" alt="" /></a>';
+				} 
+				else {
+					$imgs  = '<a href="'.$base_path.'node/'.$node->nid.'"><img src="'. imagecache_create_url("s93x104", 'sites/default/files/default_images/blank.jpg') . '" alt="" /></a>';
+				}
+		
+				$part_brand = array();
+					foreach($node->taxonomy as $key => $value) {
+						if($value->vid == 2) {
+							foreach(taxonomy_get_parents($value->tid) as $v){
+								if(!in_array($v->name,$part_brand)){
+									$part_brand[] = $v->name;
+								}
+							}
+						}
+					}
+					
+				$content = '<ul><li class="list_body">'. l($node->body,'node/'.$node->nid) .'</li><li class="list_body">'. implode(',  ',$part_brand) .'</li><li class="oen_pn"><span>' . t('OEM PN') . '</span>' . $node->model . '</li><li  class="ps_pn"><span>' . t('Partsmart PN') . '</span>' . $node->title . '</li></ul>';
+
+				$prices = array();
+				if(array_key_exists(3,$user->roles)){
+					if($node->field_part_price1[0][value] != 0) $prices[] ='(+1)$ ' . number_format($node->field_part_price1[0]['value'],2,'.','');
+					if($node->field_part_price10[0][value] != 0) $prices[] ='(+10)$ ' . number_format($node->field_part_price10[0]['value'],2,'.','');
+					if($node->field_part_price100[0][value] != 0) $prices[] ='(+100)$ ' . number_format($node->field_part_price100[0]['value'],2,'.','');
+				}else{
+					$prices[] = $node->field_part_unitprice[0]['value'] == 0 ? 'N/A' : '$ ' . number_format($node->field_part_unitprice[0]['value'],2,'.','');
+				}
+
+		$addtocart = '<ul><li class="unitprice">' . implode(',',$prices) . '</li><li class="addtocart">' . l(t('Add to cart'), 'ps/addtocart/' . $node->nid) . '</li><li class="viewdetails">' . l(t('View Details'), 'node/' . $node->nid) . '</li></ul>';
+		
+		$items[] = array(
+                'data' => '<div class="grid_1">' . $imgs . '</div><div class="grid_2">' . $content . '</div><div class="grid_3">' . $addtocart . '</div><div class="clear"></div>',
+                'class' => 'search_top_list'
+            );
+	}
+	}
+	
+	if($viewlist==1) {
+		$row = array();
+		if(array_key_exists(5,$user->roles)){
+			while ($item = db_fetch_object($result)) {
+				$node = node_load($item->nid);
+				$row[] = array(
+     				array('data' => l($node->title, 'node/' . $node->nid), 'class' => 'rw_oempn'),
+      				array('data' => $node->model, 'class' => 'rw_pn'),
+      				array('data' => $node->body, 'class' => 'rw_desc'),
+      				array('data' => '$ ' . number_format($node->field_part_price1[0][value], 2, '.', ''), 'class' => 'rw_price'),
+      				array('data' => '$ ' . number_format($node->field_part_price10[0][value], 2, '.', ''), 'class' => 'rw_price'),
+					array('data' => '$ ' . number_format($node->field_part_price100[0][value], 2, '.', ''), 'class' => 'rw_price'),
+					array('data' => '$ ' . number_format($node->field_part_unitprice[0]['value'],2,'.',''),'class' => 'rw_price'),
+					array('data' => l(t('Add to cart'), 'ps/addtocart/' . $node->nid), 'class' => 'rw_addtocart')
+     			);
+		 	}
+		}elseif(array_key_exists(3,$user->roles)){
+			while ($item = db_fetch_object($result)) {
+				$node = node_load($item->nid);
+				$row[] = array(
+     				array('data' => l($node->title, 'node/' . $node->nid), 'class' => 'rw_oempn'),
+      				array('data' => $node->model, 'class' => 'rw_pn'),
+      				array('data' => $node->body, 'class' => 'rw_desc'),
+      				array('data' => '$ ' . number_format($node->field_part_price1[0][value], 2, '.', ''), 'class' => 'rw_price'),
+      				array('data' => '$ ' . number_format($node->field_part_price10[0][value], 2, '.', ''), 'class' => 'rw_price'),
+					array('data' => '$ ' . number_format($node->field_part_price100[0][value], 2, '.', ''), 'class' => 'rw_price'),
+					array('data' => l(t('Add to cart'), 'ps/addtocart/' . $node->nid), 'class' => 'rw_addtocart')
+     			);
+		 	}
+		}else{
+			while ($item = db_fetch_object($result)) {
+				$node = node_load($item->nid);
+				$row[] = array(
+     				array('data' => l($node->title, 'node/' . $node->nid), 'class' => 'rw_oempn'),
+      				array('data' => $node->model, 'class' => 'rw_pn'),
+      				array('data' => $node->body, 'class' => 'rw_desc'),
+					array('data' => $node->field_part_unitprice[0]['value'] == 0 ? 'N/A' : '$ ' . number_format($node->field_part_unitprice[0]['value'],2,'.',''),'class'=>'rw_price'),
+					array('data' => l(t('Add to cart'), 'ps/addtocart/' . $node->nid), 'class' => 'rw_addtocart')
+     			);
+		 	}
+		}
+	}
+	
+		//----------------未完成
+		if($model > 0) {
+		switch ($parts_type) {
+				case 'printer':
+					$parts_model_nid = db_fetch_object(db_query('SELECT * FROM {node} n WHERE n.type ="%s"','printer_model'));
+				break;
+				}
+		if($parts_model_nid->nid) {
+		$parts_model_node = node_load($parts_model_nid->nid);
+		
+    $model_html = ' 
+					<div class="contactp">
+					<div class="contactpi floatl"> <img title="" alt="" src="images/98.png"></div>
+					<div class="contacte floatl">
+						<p class="blue">Compatible Models</p>
+						HP LaserJet II / HP LaserJet III /<br>
+						HP LaserJet IID / HP LaserJet IIID</div>
+					<div class="contacte floatl">
+						<p class="heii">Black/White Printer</p>
+						<p class="hesn">Total 127 parts</p>
+						<p class="hezi blue">View Model Facts</p>
+					</div>
+					<div class="righjiao floatl"><a href="#">Type the part number<br>
+						you are looking for</a></div>
+					<div class="clear"></div>
+				</div>';
+		}
+		}
+		
+		$viewlist_html = '';
+		if($viewlist == 0) {
+			$viewlist_html = '<div class="view_list">View <select id="pagview"><option value="0" selected="true">Icon</option><option value="1">List</option></select></div>';
+			$list_content = theme('item_list', $items, NULL, 'ul', array('id' => 'select_brand_tb'));
+		}
+		if($viewlist ==1) {
+			if(array_key_exists(5,$user->roles)){
+			$viewlist_html = '<div class="view_list">View <select id="pagview"><option value="0">Icon</option><option value="1" selected="true">List</option></select></div>';
+			$tbheader = array(
+            array('data' => 'OEM PN', 'class' => 'hd_oempn'),
+            array('data' => 'Partsmart PN', 'class' => 'hd_pn'),
+            array('data' => 'Description', 'class' => 'hd_desc'),
+            array('data' => '1+', 'class' => 'hd_price'),
+			array('data' => '10+', 'class' => 'hd_price'),
+			array('data' => '100+', 'class' => 'hd_price'),
+			array('data' => 'Retail Price', 'class' => 'hd_price'),
+            array('data' => 'Add to cart', 'class' => 'hd_addtocart')
+        	);
+		}elseif(array_key_exists(3,$user->roles)){
+			$viewlist_html = '<div class="view_list">View <select id="pagview"><option value="0">Icon</option><option value="1" selected="true">List</option></select></div>';
+			$tbheader = array(
+            array('data' => 'OEM PN', 'class' => 'hd_oempn'),
+            array('data' => 'Partsmart PN', 'class' => 'hd_pn'),
+            array('data' => 'Description', 'class' => 'hd_desc'),
+            array('data' => '1+', 'class' => 'hd_price'),
+			array('data' => '10+', 'class' => 'hd_price'),
+			array('data' => '100+', 'class' => 'hd_price'),
+            array('data' => 'Add to cart', 'class' => 'hd_addtocart')
+        	);
+		}
+		else{
+			$viewlist_html = '<div class="view_list">View <select id="pagview"><option value="0">Icon</option><option value="1" selected="true">List</option></select></div>';
+			$tbheader = array(
+            array('data' => 'OEM PN', 'class' => 'hd_oempn'),
+            array('data' => 'Partsmart PN', 'class' => 'hd_pn'),
+            array('data' => 'Description', 'class' => 'hd_desc'),
+			array('data' => 'Retail Price', 'class' => 'hd_price'),
+            array('data' => 'Add to cart', 'class' => 'hd_addtocart')
+        	);
+		}
+        $list_content = theme('table', $tbheader, $row, array('id' => 'list_tbl'));
+		}
+		
+		$limit_html = '';
+		switch ($limit) {
+			case 0:
+			$limit_html = '<div class="view_list">Results per page<select id="limit_number"><option value="10" selected="true">10</option><option value="20">20</option><option value="50">50</option></select></div>';
+			break;
+			case 10:
+			$limit_html = '<div class="view_list">Results per page<select id="limit_number"><option value="10" selected="true">10</option><option value="20">20</option><option value="50">50</option></select></div>';
+			break;
+			case 20:
+			$limit_html = '<div class="view_list">Results per page<select id="limit_number"><option value="10">10</option><option value="20" selected="true">20</option><option value="50">50</option></select></div>';
+			break;
+			case 50:
+			$limit_html = '<div class="view_list">Results per page<select id="limit_number"><option value="10">10</option><option value="20">20</option><option value="50" selected="50">50</option></select></div>';
+			break;
+		}
+		
+		
+		if($pager_page_array[0] == ($pager_total[0]-1)) {
+			$pager_item_first = $pager_page_array[0] * $limit + 1;
+			$pager_item_last = $pager_total_items[0];
+		}
+		else {
+			$pager_item_first = $pager_page_array[0] * $limit + 1;
+			$pager_item_last = $pager_page_array[0] * $limit + $limit;
+		}
+		$header = '<div class="search_brand_header">
+		<div class="count_list">Show '. $pager_item_first .' - ' . $pager_item_last . ' of  ' . $pager_total_items[0] . ' results</div>'. $viewlist_html . $sortby_html . $limit_html .'</div>';
+ 
+   	
+    $pager = theme('pager', array('<<', '<', '', '>', '>>'), 10, 0);
+  
+    $output .= $model_html . '<div id="select_brand_list">' . $header . $pager . $list_content . $header . $pager.'</div>';
+ 		
+		$matches =array();
+		$matches['color_num'] = $color_num;
+		$matches['select_brand'] = $brand;
+		$matches['select_model'] = $model;
+		$matches['select_color'] = $color;
+		$matches['select_category'] = $category;
+		$matches['select_subcategory'] = $subcategory;
+		$matches['brand_num'] = $brand_num;
+		$matches['model_num'] = $model_num;
+		$matches['category_num'] = $category_num;
+		$matches['subcategory_num'] = $subcategory_num;
+ 		$matches['partslist'] = $output;
+		drupal_json($matches);
+
+}
+
+function ajax_newpartslist() {
+	global $base_path;
+	
+	$parts_type = $_GET['parts_type'];
+	$release_date = $_GET['date'];
+	
+	$newsparts = '';
+	$sql = 'SELECT cd.nid FROM {content_field_part_release_date} cd INNER JOIN {node} n ON n.nid = cd.nid WHERE n.type = "%s" AND cd.field_part_release_date_value =%d';
+	$result = db_query($sql,$parts_type,$release_date);
+	
+	$i = 1;
+	while($item = db_fetch_object($result)){
+		$parts_node = node_load($item->nid);
+		
+		if(file_exists('sites/default/files/product/' . $parts_node->title .'.jpg')) {
+			$imgs = '<img src="'. imagecache_create_url("s158x158", 'sites/default/files/product/' . $parts_node->title .'.jpg'). '" alt="" />';
+		} 
+		elseif(!empty($node->field_image_cache[0])){
+			$imgs = '<img src="' . imagecache_create_url("s158x158", $parts_node->field_image_cache[0]['filepath']) . '" alt="" />';
+		} 
+		else {
+			$imgs  = '<img src="'. imagecache_create_url("s158x158", 'sites/default/files/default_images/blank.jpg') . '" alt="" />';
+		}
+		
+		$price = array();
+		if($parts_node->field_part_price1[0][value] != 0) $price[] = '$' . $parts_node->field_part_price1[0][value];
+		if($parts_node->field_part_price10[0][value] != 0) $price[] = '$' . $parts_node->field_part_price10[0][value];
+		if($parts_node->field_part_price100[0][value] != 0) $price[] = '$' . $parts_node->field_part_price100[0][value];
+		
+		$parts_title = l($parts_node->title,$parts_node->url);
+		
+		if($i % 4 != 0) {
+			$newsparts .= '<div class="partsproductitem"><div class="partsitem-img">'. $imgs .'</div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
+		}
+		else {
+			$newsparts .= '<div id="partsproduceitem-right" class="partsproductitem"><div class="partsitem-img">'. $imgs .'</div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
+		}
+		$i++;
+	}
+	print $newsparts . '<div class="clear"></div>';
+}
+
+function ps_pages_get_terms_byvid($vid, $parent = 0, $depth = -1, $max_depth = NULL, $cid = NULL) {
+    if ($vid == 3) {
+        $terms = taxonomy_get_tree($vid, $parent, $depth, $max_depth);
+    } else {
+        $terms = taxonomy_get_tree($vid, $parent, $depth, $max_depth);
+    }
+
+    if (is_numeric($cid) && $cid == 3) {
+        $query = array('cid' => $cid);
+    }
+
+    foreach ($terms as $term) {
+        $items[] = l(t($term->name), 'taxonomy/term/' . $term->tid, array('query' => $query));
+    }
+
+    if (!empty($items)) {
+        return theme('item_list', $items);
+    }
+}
+
+function ps_pages_get_terms_parent_byvid($vid, $parent = 0, $depth = -1, $max_depth = NULL, $cid = NULL, $type = 0) {
+    if (is_numeric($cid) && $cid == 3) {
+        $query = array('cid' => $cid);
+    }
+    
+    if ($vid == 100) {
+        $sql = "SELECT t.tid,t.name FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE h.parent > 0 AND t.vid = %d ORDER BY t.weight ASC";
+    } else {
+        $sql = "SELECT t.tid,t.name FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE h.parent = 0 AND t.vid = %d ORDER BY t.weight ASC";
+    }
+    
+    $cat=array(3,6,4);
+    $brand=array(2,5,7);
+    
+    $result = db_query($sql, $vid);
+   
+    $count = 0;
+    while ($term = db_fetch_object($result)) {
+        //$count = taxonomy_term_count_nodes($term->tid, $type);
+       if(in_array($vid,$cat)){
+          // $count = db_result(db_query("select count(DISTINCT(nid)) from {ps_part} where category=%d ",$term->tid, $type));
+       $count = taxonomy_term_count_nodes($term->tid, $type);
+   
+       }
+       if(in_array($vid,$brand)){
+           $count = db_result(db_query("select count(nid) from {ps_part} where brand=%d",$term->tid));
+       }
+       
+        
+        $items[] = l(t($term->name) . ' (' . $count . ')', 'taxonomy/term/' . $term->tid, array('query' => $query));
+    }
+
+
+    if (!empty($items)) {
+        return theme('item_list', $items);
+    }
+}
+
+function ps_pages_form_alter(&$form, $form_state, $form_id) {
+
+    if ($form_id == 'product_node_form') {
+        $form['field_part_copier_models']['#prefix'] = '<div id="select-part-copier-models">';
+        $form['field_part_copier_models']['#suffix'] = '</div>';
+        $form['field_part_compatible_models']['#prefix'] = '<div id="select-part-printer-models">';
+        $form['field_part_compatible_models']['#suffix'] = '</div>';
+        $form['field_part_cpbrand']['#prefix'] = '<div id="select-part-cpbrand">';
+        $form['field_part_cpbrand']['#suffix'] = '</div>';
+
+        $form['field_part_prtbrand']['#prefix'] = '<div id="select-part-prtbrand">';
+        $form['field_part_prtbrand']['#suffix'] = '</div>';
+    }
+}
+
+function ps_pages_newparts_options($limit, $language, $tid) {
+    $sql = "SELECT node.nid AS nid, node.language AS node_language, node_data_field_part_release_date.field_part_release_date_value AS node_data_field_part_release_date_field_part_release_date_value FROM {node} node INNER JOIN {term_node} term_node ON node.vid = term_node.vid   LEFT JOIN {content_type_product} node_data_field_part_release_date ON node.vid = node_data_field_part_release_date.vid WHERE (node.type in ('product')) AND (node.status <> 0) AND   (node.language in ('%s')) AND (term_node.tid = %d ) ORDER BY node_data_field_part_release_date_field_part_release_date_value DESC  LIMIT 0,%d";
+
+    if ($tid == 2) {
+        $field = 'field_part_copier_models';
+    } else {
+        $field = 'field_part_compatible_models';
+    }
+
+    $result = db_query($sql, $language, $tid, $limit);
+    global $user;
+    while ($item = db_fetch_object($result)) {
+        $node = node_load($item->nid);
+        //dpm($node);
+        $file = $node->field_image_cache[0]['filepath'];
+
+        $price = ps_pages_show_price($user->uid, $node->field_price_c_customer, $node->field_price_volume_range, $node->field_part_unitprice, ' ', 0);
+        if (empty($price)) {
+            $price = ps_pages_retail_price($node->field_part_rg_price_vr, $node->field_part_rg_unitprice);
+        }
+        $items[] = '<div class="proimgae"><a href="' . url('node/' . $node->nid) . '"><img  src="' . imagecache_create_url("s164x164", $file) . '" alt=""></a></div><em><a href="' . url('node/' . $node->nid) . '">' . $node->title . '</a></em><p>' . ps_pages_get_compatible_parent_model($node->{$field }, $tid) . '<br>
+								' . $price . '</p>';
+    }
+
+    return theme('item_list', $items, null, 'ul', array('id' => 'slider-two'));
+}
+
+function ps_pages_parts_options($options, $limit, $language, $tid) {
+    $sql = "SELECT node.nid AS nid, node.language AS node_language, node_data_field_part_release_date.field_part_release_date_value AS node_data_field_part_release_date_field_part_release_date_value FROM {node} node INNER JOIN {term_node} term_node ON node.vid = term_node.vid  LEFT JOIN {content_field_part_options} node_data_field_part_options ON node.vid = node_data_field_part_options.vid LEFT JOIN {content_type_product} node_data_field_part_release_date ON node.vid = node_data_field_part_release_date.vid WHERE (node.type in ('product')) AND (node.status <> 0) AND (node_data_field_part_options.field_part_options_value = %d) AND (node.language in ('%s')) AND (term_node.tid = %d ) ORDER BY node_data_field_part_release_date_field_part_release_date_value DESC  LIMIT 0,%d";
+
+    if ($tid == 2) {
+        $field = 'field_part_copier_models';
+    } else {
+        $field = 'field_part_compatible_models';
+    }
+
+    $result = db_query($sql, $options, $language, $tid, $limit);
+    global $user;
+    while ($item = db_fetch_object($result)) {
+        $node = node_load($item->nid);
+        //dpm($node);
+        $file = $node->field_image_cache[0]['filepath'];
+
+        $price = ps_pages_show_price($user->uid, $node->field_price_c_customer, $node->field_price_volume_range, $node->field_part_unitprice, ' ', 0);
+        if (empty($price)) {
+            $price = ps_pages_retail_price($node->field_part_rg_price_vr, $node->field_part_rg_unitprice);
+        }
+        $items[] = '<div class="proimgae"><a href="' . url('node/' . $node->nid) . '"><img src="' . imagecache_create_url("s164x164", $file) . '" alt=""></a></div><em><a href="' . url('node/' . $node->nid) . '">' . $node->title . '</a></em><p>' . ps_pages_get_compatible_parent_model($node->{$field }, $tid) . '<br>
+								' . $price . '</p>';
+    }
+
+    return theme('item_list', $items, null, 'ul', array('id' => 'slider-two'));
+}
+
+//无用
+function ps_pages_get_compatible_parent_model($nids, $cid) {
+    if ($cid == 2) {
+
+        $type = 'content_type_copier_model';
+        $field = 'field_copier_parent_model_nid';
+        $sql = "SELECT n.title  FROM {node} n INNER JOIN {content_type_copier_model} pm ON n.nid = pm.nid WHERE n.nid = %d AND pm.field_copier_parent_model_nid	IS  NULL";
+    } else {
+        $type = 'content_type_printer_model';
+        $field = 'field_model_parents_nid';
+        $sql = "SELECT n.title  FROM {node} n INNER JOIN {content_type_printer_model} pm ON n.nid = pm.nid WHERE n.nid = %d AND pm.field_model_parents_nid	IS   NULL";
+    }
+
+    foreach ($nids as $k => $nid) {
+        $title = db_result(db_query($sql, $nid['nid']));
+
+        if (!empty($title) && isset($title)) {
+            $model = $title;
+        }
+    }
+    return $model;
+}
+
+function ps_pages_retail_price($ranges, $unitprice) {
+    foreach ($ranges as $k => $range) {
+        $output[] = '$' . number_format($unitprice[$k]['value'], 2, '.', '') . '(' . $range['value'] . ')';
+    }
+    unset($output[0]);
+    return implode(' ', $output);
+}
+
+function ps_pages_retail_price_all($ranges, $unitprice, $tag) {
+    foreach ($ranges as $k => $range) {
+        $output[] = '(' . $range['value'] . ') ' . '$' . number_format($unitprice[$k]['value'], 2, '.', '');
+    }
+
+    return implode($tag, $output);
+}
+
+function ps_pages_new_parts_group_release_date($language, $category_id) {
+    $sql = " SELECT  (product.field_part_release_date_value) AS release_date, SUM(product.nid) AS total
+					FROM {content_type_product} product 
+					LEFT JOIN {content_field_part_options} ops ON  product.nid = ops.nid 
+					LEFT JOIN {node} n ON n.nid = product.nid 
+					LEFT JOIN {term_node} tn ON tn.nid = product.nid
+					WHERE ops.field_part_options_value = 1 AND n.language = '%s' AND n.status <> 0 AND tn.tid = %d
+					GROUP BY release_date
+					ORDER BY release_date DESC 
+					LIMIT 0 , 4 ";
+    $result = db_query($sql, $language, $category_id);
+    while ($node = db_fetch_object($result)) {
+        $release_date[] = $node->release_date;
+    }
+
+    return $release_date;
+}
+
+function ps_pages_render_newparts($language, $category_id) {
+
+    global $user;
+    $release_date = ps_pages_new_parts_group_release_date($language, $category_id);
+    if ($category_id == 2) {
+        $field = 'field_part_copier_models';
+    } else {
+        $field = 'field_part_compatible_models';
+    }
+    $sql = "SELECT prd.nid FROM {content_type_product} prd
+			LEFT JOIN {node} n ON n.nid = prd.nid 
+			LEFT JOIN {term_node} tn ON tn.nid = prd.nid 
+			WHERE prd.field_part_release_date_value = %d AND tn.tid = %d AND n.language = '%s'
+			LIMIT 0,4";
+
+    foreach ($release_date as $date) {
+        $result = db_query($sql, $date, $category_id, $language);
+
+
+        $output .= '<div class="conoutit"><a name="' . $date . '">' . date('m/d/Y', $date) . '</a></div><div class="product">';
+        while ($item = db_fetch_object($result)) {
+
+            $node = node_load($item->nid);
+
+            $price = ps_pages_show_price($user->uid, $node->field_price_c_customer, $node->field_price_volume_range, $node->field_part_unitprice, ' ', 0);
+            if (empty($price)) {
+                $price = ps_pages_retail_price($node->field_part_rg_price_vr, $node->field_part_rg_unitprice);
+            }
+            $file = $node->field_image_cache[0]['filepath'];
+            $items[] = '<div class="proimgae"><a href="' . url('node/' . $node->nid) . '"><img src="' . imagecache_create_url("s164x164", $file) . '" alt=""></a></div><em><a href="' . url('node/' . $node->nid) . '">' . $node->title . '</a></em><p>' . ps_pages_get_compatible_parent_model($node->{$field}, $category_id) . '<br>
+				' . $price . '</p>';
+        }
+
+        $output .=theme('item_list', $items) . '<div class="clear"></div></div><div class="containerr"><span><a href="#">Return to Top</a></span></div>';
+        unset($items);
+    }
+
+    return $output;
+}
+
+function ps_pages_render_newparts8($language, $category_id) {
+
+    global $user;
+    //$release_date = ps_pages_new_parts_group_release_date($language,$category_id);
+    if ($category_id == 2) {
+        $field = 'field_part_copier_models';
+    } else {
+        $field = 'field_part_compatible_models';
+    }
+    $sql = "SELECT prd.nid FROM {content_type_product} prd
+			LEFT JOIN {node} n ON n.nid = prd.nid 
+			LEFT JOIN {term_node} tn ON tn.nid = prd.nid 
+			WHERE tn.tid = %d AND n.language = '%s'
+			ORDER BY prd.field_part_release_date_value DESC
+			LIMIT 0,16";
+
+    //foreach($release_date as $date) {
+    $result = db_query($sql, $category_id, $language);
+
+
+    //$output .= '<div class="conoutit"><a name="'.$date.'">'.date('m/d/Y',$date).'</a></div><div class="product">';
+    $output .= '<div class="conoutit"></div><div class="product">';
+    while ($item = db_fetch_object($result)) {
+
+        $node = node_load($item->nid);
+
+        $price = ps_pages_show_price($user->uid, $node->field_price_c_customer, $node->field_price_volume_range, $node->field_part_unitprice, ' ', 0);
+        if (empty($price)) {
+            $price = ps_pages_retail_price($node->field_part_rg_price_vr, $node->field_part_rg_unitprice);
+        }
+        $file = $node->field_image_cache[0]['filepath'];
+        $items[] = '<div class="proimgae"><a href="' . url('node/' . $node->nid) . '"><img src="' . imagecache_create_url("s164x164", $file) . '" alt=""></a></div><em><a href="' . url('node/' . $node->nid) . '">' . $node->title . '</a></em><p>' . ps_pages_get_compatible_parent_model($node->{$field}, $category_id) . '<br>
+				' . $price . '</p>';
+    }
+
+    $output .=theme('item_list', $items) . '<div class="clear"></div></div><div class="containerr"><span><a href="#">Return to Top</a></span></div>';
+    unset($items);
+    //}
+
+    return $output;
+}
+
+function ps_pages_render_bestsellingparts($language, $category_id) {
+    $sql = "SELECT n.nid FROM {node} n 
+					INNER JOIN {term_node} tn ON tn.nid = n.nid 
+					LEFT JOIN {content_field_part_options} ops ON ops.nid = n.nid 
+					WHERE tn.tid = %d AND ops.field_part_options_value = 2 AND n.language = '%s' AND n.status <> 0 ORDER BY nid desc";
+
+    if ($category_id == 2) {
+        $field = 'field_part_copier_models';
+    } else {
+        $field = 'field_part_compatible_models';
+    }
+    global $user;
+    $result = db_query($sql, $category_id, $language);
+    while ($item = db_fetch_object($result)) {
+
+        $node = node_load($item->nid);
+
+        $price = ps_pages_show_price($user->uid, $node->field_price_c_customer, $node->field_price_volume_range, $node->field_part_unitprice, ' ', 0);
+        if (empty($price)) {
+            $price = ps_pages_retail_price($node->field_part_rg_price_vr, $node->field_part_rg_unitprice);
+        }
+
+        $file = $node->field_image_cache[0]['filepath'];
+        $items[] = '<div class="proimgae"><a href="' . url('node/' . $node->nid) . '"><img src="' . imagecache_create_url("s164x164", $file) . '" alt=""></a></div><em><a href="' . url('node/' . $node->nid) . '">' . $node->title . '</a></em><p>' . ps_pages_get_compatible_parent_model($node->{$field}, $category_id) . '<br>
+				' . $price . '</p>';
+    }
+
+
+    $output = '<div class="product">' . theme('item_list', $items) . '</div>';
+
+    return $output;
+}
+
+function ps_pages_product_category_prd($vid) {
+    global $language;
+    
+    $parent_result = db_query('SELECT t.tid,t.name FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE t.vid = %d AND h.parent = 0 ORDER BY weight', $vid);
+    
+    while ($term = db_fetch_object($parent_result)) {
+        
+        $children = _taxonomy_term_children($term->tid);
+        $ptid = array($term->tid);
+        $output .= '<div class="conoutit mapleft">' . l(t($term->name), 'taxonomy/term/' . $term->tid) . '</div><div class="mapprod">
+					<!-- 
+					<div class="proleft"><a href="#"><img src="' . base_path() . path_to_theme() . '/images/proleft.png" alt=""></a></div>
+					<div class="proright"><a href="#"><img src="' . base_path() . path_to_theme() . '/images/porright.png" alt=""></a></div>
+					  -->
+				';
+
+        $tids = implode(',', array_merge($children, $ptid));
+        $tids = !empty($tids) ? $tids : 0;
+        $sql = "SELECT n.nid FROM {node} n INNER JOIN {term_node} tn ON tn.nid = n.nid 
+						WHERE n.status <> 0 AND n.language = '%s' AND tn.tid IN (" . $tids . ") 
+						ORDER BY n.nid DESC  
+						LIMIT 0,30";
+
+        $result = db_query($sql, $language->language);
+        while ($item = db_fetch_object($result)) {
+            $node = node_load($item->nid);
+            $file = $node->field_image_cache[0]['filepath'];
+            if (file_exists(realpath($file))) {
+                $items[] = '<a href="' . url('node/' . $node->nid) . '" name=" applestar"><img src="' . imagecache_create_url("s92x98", $file) . '" alt=""></a>';
+            } else {
+                global $base_url;  
+                $defalut_img = drupal_get_path('theme', 'partsmart') . "/images/blank.jpg";
+                $items[] = '<a href="' . url('node/' . $node->nid) . '" name=" applestar"><img src="' .$base_url.'/'.$defalut_img/'" alt=""></a>';
+            }
+        }
+
+        $output .= theme('item_list', $items, NULL, 'ul', array('class' => 'horizontalcarousel_' . $term->tid . ' jcarousel-skin-default')) . '</div>';
+        jcarousel_add('horizontalcarousel_' . $term->tid, array('scroll' => 1));
+        unset($items);
+    }
+
+    return $output;
+}
+
+function ps_pages_children_product($pid) {  //http://ziyodesign.com/partsmartfile/printer-parts-category/kit-and-fuser-assembly
+    echo '----------------pid='.$pid;
+    $children = _taxonomy_term_children($pid);
+    if (empty($children)) {
+        
+    }
+    foreach ($children as $child) {
+        unset($file);
+        $term = taxonomy_get_term($child);
+        $count = taxonomy_term_count_nodes($term->tid, 'product');
+        $nid = db_result(db_query("SELECT n.nid FROM {node} n INNER JOIN {term_node} t ON t.nid = n.nid WHERE t.tid = %d ORDER BY RAND()
+LIMIT 1", $term->tid));
+        $node = node_load($nid);
+        if (!empty($node->field_image_cache[0]['filepath'])) {
+            if (file_exists(realpath($node->field_image_cache[0]['filepath']))) {
+                $asfilepath = imagecache_create_url("s164x164", $node->field_image_cache[0]['filepath']);
+            } else {
+                $asfilepath = imagecache_create_url("s164x164", drupal_get_path('theme', 'partsmart') . "/images/blank.jpg");
+            }
+
+            $file = '<img src="' . $asfilepath . '" alt=""  >';
+        }
+        $items[] = '<div class="proimgae"><a href="' . url('taxonomy/term/' . $term->tid) . '">
+			' . $file . '</a></div><em><a href="' . url('taxonomy/term/' . $term->tid) . '">' . $term->name . '</a></em><p class="blue">' . $count . ' ' . t('parts') . '</p>';
+    }
+
+    return '<div class="product">' . theme('item_list', $items) . '</div>';
+}
+
+function ps_pages_get_vid($tid) { // get vid by term id IN Category
+    if ($tid == 1) { // printer
+        $m_vid = 2;  //Printer Manufacturer
+        $category_vid = 3; //Printer Parts Category
+    } else if ($tid == 2) { // copier
+        $m_vid = 5;
+        $category_vid = 6;
+    } else if ($tid == 3) { //cartidage
+        $m_vid = 7;
+        $category_vid = 4;
+    }
+
+    return array('mvid' => $m_vid, 'category_vid' => $category_vid);
+}
+
+function ps_pages_parent_model_relateparts($category_id, $vid, $language) {
+    if ($vid == 6) { //copier
+        $sql = "SELECT DISTINCT  pm.field_part_copier_models_nid ,n.title FROM {content_field_part_copier_models} pm 
+					INNER JOIN {content_type_copier_model} tpm ON tpm.nid = pm.field_part_copier_models_nid 
+					LEFT JOIN {term_node} tn ON pm.nid = tn.nid
+					LEFT JOIN {node} n ON pm.field_part_copier_models_nid = n.nid
+					WHERE tpm.field_copier_parent_model_nid IS NULL AND tn.tid = %d AND n.status <> 0 AND n.language = '%s'
+          LIMIT 0 , 50";
+    } else {
+        $sql = "SELECT DISTINCT  pm.field_part_compatible_models_nid ,n.title FROM {content_field_part_compatible_models} pm 
+					INNER JOIN {content_type_printer_model} tpm ON tpm.nid = pm.field_part_compatible_models_nid 
+					LEFT JOIN {term_node} tn ON pm.nid = tn.nid
+					LEFT JOIN {node} n ON pm.field_part_compatible_models_nid = n.nid
+					WHERE tpm.field_model_parents_nid IS NULL AND tn.tid = %d AND n.status <> 0 AND n.language = '%s'
+          LIMIT 0 , 50";
+    }
+
+
+    $result = db_query($sql, $category_id, $language);
+    global $user;
+    while ($item = db_fetch_object($result)) {
+        if ($vid == 6) {
+            $models_nid = $item->field_part_copier_models_nid;
+            $result_part = db_query("SELECT pm.nid FROM {content_field_part_copier_models} pm INNER JOIN {term_node} tn ON tn.nid = pm.nid 
+							WHERE pm.field_part_copier_models_nid = %d AND tn.tid = %d  ", $models_nid, $category_id);
+        } else {
+            $models_nid = $item->field_part_compatible_models_nid;
+            $result_part = db_query("SELECT pm.nid FROM {content_field_part_compatible_models} pm INNER JOIN {term_node} tn ON tn.nid = pm.nid 
+							WHERE pm.field_part_compatible_models_nid = %d AND tn.tid = %d  ", $models_nid, $category_id);
+        }
+
+        $output .= '<div class="fuserr page-category-showimages" nid="' . $models_nid . '">
+					<div class="fuserrtu floatl ">
+						<p>' . $item->title . '</p> 
+						 </div>
+					<div class="fuserrta floatl">
+						<table border="0" cellspacing="0" cellpadding="0" class="table-box">
+							<thead><tr>
+								<td class="fuserrtath"></td>
+								<td class="fuserrtath">OEM PN</td>
+								<td class="fuserrtath">Partsmart PN</td>
+								<td class="fuserrtath">Description</td>
+								<td class="fuserrtath">1+</td>
+								<td class="fuserrtath">10+</td>
+								<td class="fuserrtath">100+</td>
+							</tr></thead><tbody>';
+
+
+        while ($part = db_fetch_object($result_part)) {
+            $node = node_load($part->nid);
+
+            $pricec = ps_pages_get_shop_price($user->uid, $node->field_price_c_customer, $node->field_price_volume_range, $node->field_part_unitprice);
+            if (empty($pricec)) {
+                $prices = $node->field_part_rg_unitprice;
+                $vk = 'value';
+            } else {
+                $vk = 'price';
+                $prices = $pricec;
+            }
+
+
+            foreach ($prices as $up) {
+                $price .= '<td>$' . $up[$vk] . '</td>';
+            }
+
+
+            $output .='
+							<tr class="tb-partsimage">
+								<td style="text-align: right;"><img src="' . base_path() . path_to_theme() . '/images/wen.png" alt=""  title="' . $node->title . '" class="pagecategorywen firstimg-' . $models_nid . '" ></td>
+								<td>' . l($node->title, 'node/' . $node->nid) . '</td>
+								<td>' . $node->model . ' </td>
+								<td>' . drupal_substr(strip_tags($node->body), 0, 10) . '</td>
+								' . $price . '
+							</tr>
+							<tr class="tb-part-image"  ><td></td><td colspan="3"><img src="' . imagecache_create_url("s93x104", $node->field_image_cache[0]['filepath']) . '" alt=""></td><td colspan="3" class="viewdetails"><a href="' . url('node/' . $node->nid) . '"><img class="viewdetails" src="' . base_path() . path_to_theme() . '/images/viewdetail.jpg"></a></td></tr>
+							
+							';
+            unset($price);
+        }
+
+        $output .= '	</tbody></table>
+					</div>
+					<div class="clear"></div>
+				</div>';
+    }
+
+    return $output;
+}
+
+//这个程序是无用的
+function ps_pages_relate_printer_parts($tids, $nids, $selfnid) {
+    global $language;
+    if (is_array($tids)) {
+        $tids = implode(",", $tids);
+    }
+    if (is_array($nids)) {
+        $nids = implode(",", $nids);
+    }
+    if (!empty($tids) && !empty($nids)) {
+
+        $sql = "SELECT DISTINCT n.nid FROM {node} n INNER JOIN {term_node} tn ON n.nid = tn.nid 
+						LEFT JOIN {content_field_part_compatible_models} pm ON pm.nid = n.nid
+						WHERE tn.tid IN (" . $tids . ") OR pm.field_part_compatible_models_nid IN (" . $nids . ") AND n.nid NOT IN (" . $selfnid . ") AND n.status <> 0 AND n.language ='%s'
+						ORDER BY n.nid DESC	LIMIT 0,20
+						";
+
+        $result = db_query($sql, $language->language);
+        while ($item = db_fetch_object($result)) {
+            if($node->field_image_cache[0]['filepath'] != ''){
+                $img = imagecache_create_url("s158x158", $node->field_image_cache[0]['filepath']);
+            }else{
+               global $base_url;      
+        $img=$base_url.'/sites/default/files/imagefield_default_images/blank.jpg'; 
+            }
+            $node = node_load($item->nid);
+            $output .='	<li><a href="' . url('node/' . $node->nid) . '"><img width="158px" height="158px" src="' . $img . '" alt=""></a></li>';
+        }
+    }
+    return $output;
+}
+
+/* helper functin for the call menu
+ * */
+
+function ps_pages_manufacturers($vid, $cid) {
+    $terms = taxonomy_get_tree($vid, 0, -1, 1);
+    if (is_numeric($cid) && $cid == 3) {
+        $query = array('cid' => $cid);
+    }
+
+    foreach ($terms as $term) {
+
+        $output .= '<a class="brand-term-' . $term->tid . '" href="' . url('taxonomy/term/' . $term->tid, array('query' => $query)) . '">' . taxonomy_image_display($term->tid, $tags = NULL, 'ORIGINAL', $overrides = array()) . '</a>';
+	//	$output .= '<a class="brand-term-' . $term->tid . '" href="' . url('taxonomy/term/' . $term->tid, array('query' => $query)) . '">' . taxonomy_image_display($term->tid, $tags = NULL, 'brand_215x73', $overrides = array()) . '</a>';
+    }
+    return $output;
+}
+
+/* $cid, should be part caretory : printer ?coper ?
+ * *	$mid, the manufacture id
+ */
+
+function ps_pages_printer_models($cid, $mid) {
+    global $language;
+
+    if (is_numeric($_GET['color'])) {
+       
+        $and = " AND pm.field_model_color_value = " . $_GET['color'] . "";
+        
+    }
+    if($cid ==1) {
+    $sql = "SELECT n.nid FROM {node} n  INNER JOIN {content_type_printer_model} pm ON n.nid = pm.nid 
+	LEFT JOIN {term_node} tn ON tn.nid = n.nid
+	WHERE pm.field_model_parents_nid IS NULL AND n.status <> 0 AND n.language = '%s' AND tn.tid = %d   " . $and . "
+	ORDER BY n.title ASC";
+    }
+    if($cid ==2) {
+   $sql = "SELECT n.nid,n.title FROM {node} n  INNER JOIN {content_field_model_brand} pm ON n.nid = pm.nid 
+        LEFT JOIN {content_field_model_type} ty on ty.nid = n.nid 
+	WHERE  n.status <> 0 AND n.language = '%s' AND pm.field_model_brand_value = %d   " . $and . "
+	ORDER BY n.title ASC";
+    }
+    if($cid ==3) {
+    $sql = "SELECT n.nid FROM {node} n  INNER JOIN {content_field_model_brand} pm ON n.nid = pm.nid 
+	WHERE n.status <> 0 AND n.language = '%s' AND pm.field_model_brand_value= %d   " . $and . "
+	ORDER BY n.title ASC";
+    }
+    
+    $result = db_query($sql, $language->language, $mid);
+
+    $counter = 0; 
+    while ($item = db_fetch_object($result)) {
+        $node = node_load($item->nid);
+        $file = $node->field_model_image[0]['filepath'];
+        if (!file_exists($file)) {
+            $file = drupal_get_path('theme', 'partsmart') . '/images/blank.jpg';
+        }
+        
+        $color = $node->field_model_color[0]['value'];
+        if (empty($color)) {
+            $color = 2;
+        }
+        $counter = ps_part_get_node_conter_by_model($item->nid);
+        
+        $titleLen = (strlen($node->title) > 21 ) ? '...' : '';
+        if($counter){
+            $output .= '<li class="color-' . $color . '"><div class="modeloutpp"><img src="' . imagecache_create_url("s226x165", $file) . '" alt="" title="' . $node->title . ' Series"></div><a href="' . url('manufacturer/parts/' . $cid . '/' . $mid . '/' . $node->nid) . '"  class="p-color" >' . drupal_substr($node->title, 0, 21) . $titleLen . ' ('. $counter . ')</a></li>';
+        }
+    }
+
+    return '<div class="modelout">
+					<ul id="page-manufacturer-list">' . $output . '</ul></div>';
+}
+
+function ps_pages_copier_models($cid, $mid) {
+    global $language;
+    
+    /*
+      $sql = "SELECT n.nid FROM {node} n  INNER JOIN {content_type_copier_model} pm ON n.nid = pm.nid
+      LEFT JOIN {content_field_part_cpbrand} cpbrand ON cpbrand.nid = n.nid
+      WHERE pm.field_copier_parent_model_nid IS NULL AND n.status <> 0 AND n.language = '%s' AND pm.field_model_brand_value = %d   ".$and."
+      ORDER BY n.title ASC";
+     */
+    $sql = "SELECT n.nid,n.title FROM {node} n  INNER JOIN {content_field_model_brand} pm ON n.nid = pm.nid 
+	WHERE  n.status <> 0 AND n.language = '%s' AND pm.field_model_brand_value = %d   " . $and . "
+	ORDER BY n.title ASC";
+
+
+    //   $sql = "SELECT nid from {content_field_part_cpbrand} WHERE  field_part_cpbrand_value = %d   ";
+
+    $result = db_query($sql, $language->language, $mid);
+
+
+    while ($item = db_fetch_object($result)) {
+
+        $node = node_load($item->nid);
+        $file = $node->field_copier_image[0]['filepath'];
+        if (!file_exists($file)) {
+            $file = drupal_get_path('theme', 'partsmart') . '/images/blank.jpg';
+        }
+        
+        $output .= '<li><div class="modeloutpp"><img src="' . imagecache_create_url("s226x165", $file) . '" alt="" title="' . $node->title . '"></div><a href="' . url('manufacturer/parts/' . $cid . '/' . $mid . '/' . $node->nid) . '" class="modrup">' . $node->title . '</a></li>';
+    }
+
+    return '<div class="modelout">
+					<ul id="page-manufacturer-list">' . $output . '</ul></div>';
+}
+
+
+function ps_pages_cart_models($cid, $mid) {
+    global $language;
+
+    /*
+      $sql = "SELECT n.nid FROM {node} n  INNER JOIN {content_type_copier_model} pm ON n.nid = pm.nid
+      LEFT JOIN {content_field_model_brand} brand ON brand.nid = n.nid
+      WHERE pm.field_copier_parent_model_nid IS NULL AND n.status <> 0 AND n.language = '%s' AND pm.field_model_brand_value = %d   ".$and."
+      ORDER BY n.title ASC";
+     */
+    $sql = "SELECT n.nid,n.title FROM {node} n  INNER JOIN {content_type_cart_model} pm ON n.nid = pm.nid 
+        LEFT JOIN {content_field_model_brand} brand ON brand.nid = n.nid
+	WHERE n.status <> 0 AND n.language = '%s' AND brand.field_model_brand_value = %d   " . $and . "
+	ORDER BY n.title ASC";
+
+
+    //   $sql = "SELECT nid from {content_field_part_cpbrand} WHERE  field_part_cpbrand_value = %d   ";
+
+    $result = db_query($sql, $language->language, $mid);
+
+
+    while ($item = db_fetch_object($result)) {
+
+        $node = node_load($item->nid);
+        $file = $node->field_copier_image[0]['filepath'];
+        $output .= '<li><div class="modeloutpp"><img src="' . imagecache_create_url("s226x165", $file) . '" alt="" title="' . $node->title . '"></div><a href="' . url('manufacturer/parts/' . $cid . '/' . $mid . '/' . $node->nid) . '" class="modrup">' . $node->title . '</a></li>';
+    }
+
+    return '<div class="modelout">
+					<ul id="page-manufacturer-list">' . $output . '</ul></div>';
+}
+
+
+function ps_pages_search_models($tid, $cid=NULL) {
+    if (is_numeric($cid)) {
+        $query0 = array('cid' => $cid);
+        $query1 = array('color' => 1, 'cid' => $cid);
+        $query2 = array('color' => 2, 'cid' => $cid);
+    } else {
+
+        $query1 = array('color' => 1);
+        $query2 = array('color' => 2);
+    }
+    if ($_GET['color'] == 1) {
+        $query1_style = "selected";
+    } else if ($_GET['color'] == 2) {
+        $query2_style = "selected";
+    } else {
+        $query0_style = "selected";
+    }
+
+    
+    $items[] = l(t('All'), 'taxonomy/term/' . $tid, array('query' => $query0, 'attributes' => array('class' => $query0_style)));
+    if($cid != 2 || $cid != 3){
+    $items[] = l(t('Color'), 'taxonomy/term/' . $tid, array('query' => $query1, 'attributes' => array('class' => $query1_style)));
+    $items[] = l(t('Black / White'), 'taxonomy/term/' . $tid, array('query' => $query2, 'attributes' => array('class' => $query2_style)));
+    }
+    return theme('item_list', $items);
+}
+
+/* original design */
+/*
+  function ps_pages_get_compatible_child_models($pid) {
+  $result = db_query("SELECT n.title,n.nid FROM {node} n INNER JOIN {content_type_printer_model} pm ON n.nid = pm.nid WHERE  pm.field_model_parents_nid = %d ",$pid);
+
+  while($item = db_fetch_object($result)) {
+  $output[]= l($item->title,'node/'.$item->nid);
+  }
+  if(!empty($output)) {
+
+  return $output;
+  }
+  }
+ */
+
+/* new design, each submodel has a parent model,that's the main model. note: we depend on a view 'find_submodels', devin@2011-11-20
+ * *@param $pid, the main model node nid
+ */
+
+function ps_pages_get_compatible_child_models($pid) {
+
+    $view_name = 'find_submodels';
+    $result = views_get_view_result($view_name, 'Page', $pid);
+    foreach ($result as $submodel) { //stdClass Object ( [nid] => 4393 [node_language] => [node_title] => IBM 4317
+        $output[] = l($submodel->node_title, 'node/' . $submodel->nid);
+    }
+    if (!empty($output)) {
+
+        return $output;
+    }
+}
+
+/* list links of submodel in model facts page, devin@2011-11-20
+ * *@param $pid, the main model node nid
+ */
+
+function ps_pages_list_child_models($pid) {
+    $output = '';
+    $view_name = 'find_submodels';
+    $result = views_get_view_result($view_name, 'Page', $pid);
+    $i = 0;
+    $size = count($result);
+    foreach ($result as $submodel) { //stdClass Object ( [nid] => 4393 [node_language] => [node_title] => IBM 4317
+        $output .= l($submodel->node_title, 'node/' . $submodel->nid);
+        $i++;
+        if ($i < $size) {
+            $output .= ', ';
+        }
+    }
+    if (!empty($output)) {
+
+        return $output;
+    }
+}
+
+function ps_pages_copier_compatible_child_models($pid) {
+    $result = db_query("SELECT n.title,n.nid FROM {node} n INNER JOIN {content_type_copier_model} pm ON n.nid = pm.nid WHERE  pm.field_copier_parent_model_nid = %d ", $pid);
+    while ($item = db_fetch_object($result)) {
+        $output[] = l($item->title, 'node/' . $item->nid);
+    }
+    if (!empty($output)) {
+
+        return $output;
+    }
+}
+
+function ps_pages_price($customer, $range, $price, $notes) {
+
+    $header = array(t('Customer'), t('Volume Range'), t('Unit Price'), t('Special Notes'));
+    $rows = array();
+    if (!empty($customer) && is_array($customer)) {
+
+        foreach ($customer as $k => $c) {
+            $user = user_load($c['uid']);
+            if ($user->uid) {
+                $rows[] = array($user->name, $range[$k]['value'] . '', '$' . $price[$k]['value'], $notes[$k]['value']);
+            }
+        }
+        return theme('table', $header, $rows);
+    }
+}
+
+function ps_pages_get_comments($node) {
+    $sql = "SELECT * FROM {comments}  WHERE nid = %d ORDER BY cid DESC ";
+    $result = pager_query($sql, 10, 0, NULL, $node->nid);
+    $header = array(t('Notes Detail'), t('Post Date'), t('Associate Name'), t('Attachments'));
+    $rows = array();
+    while ($c = db_fetch_object($result)) {
+        $user = user_load($c->uid);
+        $files = comment_upload_load_files($c->cid);
+        foreach ($files as $f) {
+            $file = $f;
+        }
+        $rows[] = array($c->comment, date('F,d,Y', $c->timestamp), $user->name, l($file['filename'], $file['filepath']));
+        unset($file);
+    }
+
+    return theme('table', $header, $rows);
+}
+
+// uid global $user
+
+function ps_pages_get_shop_price($uid, $customer, $range, $price) {
+    foreach ($customer as $k => $c) {
+        if ($c['uid'] == $uid) {
+            $showprice[] = array('range' => $range[$k]['value'], 'price' => $price[$k]['value']);
+        }
+    }
+
+    if (!empty($showprice[0]['range'])) {
+        return $showprice;
+    }
+}
+
+function ps_pages_get_shop_sale_price($range, $price) {
+    foreach ($range as $k => $c) {
+
+        $showprice[] = array('range' => $range[$k]['value'], 'price' => $price[$k]['value']);
+    }
+
+    if (!empty($showprice[0]['range'])) {
+        return $showprice;
+    }
+}
+
+function ps_pages_show_price($uid, $customer, $range, $price, $tag, $unset=NULL) {
+    $prices = ps_pages_get_shop_price($uid, $customer, $range, $price);
+
+    if (is_numeric($unset)) {
+        unset($prices[0]);
+    }
+    if (!empty($prices) && isset($prices)) {
+        foreach ($prices as $showprice) {
+            $output[] = '(' . $showprice['range'] . ') ' . '$' . number_format($showprice['price'], 2, '.', '');
+        }
+        return implode($tag, $output);
+    } else {
+        return FALSE;
+    }
+}
+
+function ps_pages_print_parent_model($nid) {
+    $sql = "SELECT m.field_part_compatible_models_nid FROM {content_field_part_compatible_models} m INNER JOIN {content_type_printer_model} t ON m.field_part_compatible_models_nid = t.nid WHERE m.nid = %d AND t.field_model_parents_nid IS NULL";
+    $result = db_query($sql, $nid);
+    while ($item = db_fetch_object($result)) {
+        $node = node_load($item->field_part_compatible_models_nid);
+        $nodes[$item->field_part_compatible_models_nid] = l($node->title . ' Series', 'node/' . $node->nid, array('attributes' => array('class' => 'pspm')));
+    }
+    return $nodes;
+}
+
+function ps_pages_copier_parent_model($nid) {
+    $sql = "SELECT m.field_part_copier_models_nid FROM {content_field_part_copier_models} m INNER JOIN {content_type_copier_model} t ON m.field_part_copier_models_nid = t.nid WHERE m.nid = %d AND t.field_copier_parent_model_nid IS NULL";
+    $result = db_query($sql, $nid);
+    while ($item = db_fetch_object($result)) {
+        $node = node_load($item->field_part_copier_models_nid);
+        $nodes[$item->field_part_copier_models_nid] = l($node->title . ' Series', 'node/' . $node->nid, array('attributes' => array('class' => 'pspm')));
+    }
+    return $nodes;
+}
+
+function ps_pages_compatible_models_list($type, $pids) {
+    if ($type == 'print') {
+        $childs = ps_pages_get_compatible_child_models($pid);
+    } else {
+        $childs = ps_pages_copier_compatible_child_models($pid);
+    }
+    return $chlids;
+}
+
+function ps_pages_get_brand($nids) {
+
+    $type = 'product'; // string identifying a content type.
+    $args = array_merge($nids, array($type));
+    $sql = "SELECT  distinct(t.tid) FROM {term_node} t   WHERE t.nid IN (" . db_placeholders($nids, 'int') . ")   ";
+
+    $result = db_query($sql, $args);
+
+    while ($item = db_fetch_object($result)) {
+        $term = taxonomy_get_term($item->tid);
+
+        $brandname = explode(' ', $term->name);
+        $brands[] = l(reset($brandname), 'taxonomy/term/' . $term->tid);
+    }
+
+    return $brands;
+}
+
+function ps_pages_nodeapi(&$node, $op) {
+
+    if ($op == 'validate') {
+        // We only care about nodes of type 'desired type'
+        $type = 'product';  // Change this to the type you want to restrict titles on
+
+        if ($node->type == $type) {
+            $sql = "SELECT n.title, n.nid FROM {node} n WHERE type = '%s' AND title = '%s'";
+            $results = db_query($sql, $type, $node->title);
+            $existing = db_fetch_object($results);
+            // We get here on both inserts and updates
+            // For updates we want to make sure the title does not match another one
+            // So we make sure it is an insert ( ! $node->nid )
+            // or for update that we have not just found the node being updated ( $exisiting->nid != $node->nid )
+            if ((!$node->nid || $existing->nid != $node->nid ) && $existing->title == $node->title) {
+                $link = l(t('existing %type', array('%type' => $type)), "node/$existing->nid");
+                form_set_error('title', t('There is already a %type called %title', array('%type' => $type, '%title' => $node->title)));
+            }
+        }
+    }
+}
+
+function ps_pages_model_now_viewing($ctid, $m_tid, $model_id, $m_name, $model_name) {
+    if ($ctid == 3) {
+        $query = array('cid' => 3);
+    }
+    $output = '<div class="manufactures now_viewing">';
+    $cat = ps_pages_get_vid($ctid);
+//	$tree = taxonomy_get_nested_tree(taxonomy_get_tree($cat['mvid']));
+    $tree = taxonomy_get_tree($cat['mvid'], 0, -1, 1);
+    $model_node = node_load($model_id);
+
+
+    $taxonomy = $model_node->taxonomy;
+    if (!empty($model_node->taxonomy)) {
+        $node_term = array_shift($taxonomy);
+    } else {
+     //   drupal_set_message(t('The model didn\'t set the taxonomy'));
+    }
+    //print_r($node_term);
+    $parent_tid = db_result(db_query("SELECT t.parent FROM {term_hierarchy} t WHERE t.tid=%d", $node_term->tid));
+    
+    if ($parent_tid == 0) { // now in the manufacture level
+        $manufacture_tid = $node_term->tid;
+        $node_model_tid = 0;
+    } else {
+        $manufacture_tid = $parent_tid;
+        $node_model_tid = $node_term->tid;
+    }
+
+
+    $selecthtml = '<select onChange="child_terms(\'' . base_path() . 'ajax/child-terms/\'+this.options[selectedIndex].value);">';
+
+    // echo '$manufacture_tid='.$manufacture_tid.'term id='.$node_term->tid.'$parent_tid='.$parent_tid;
+
+
+    foreach ($tree as $item) {
+        if ($item->tid == $m_tid) {
+
+            $selecthtml .='<option value="' . $item->tid . '" selected="selected">' . $item->name . '</option>';
+        } else {
+            $selecthtml .='<option value="' . $item->tid . '">' . $item->name . '</option>';
+        }
+    }
+    $selecthtml .= '</select>';
+    $output .= '<ul><li><strong>' . t('Manufacturers') . '</strong><br/>' . $selecthtml . '</li>';
+    $script = '<script>
+					
+		function child_terms(url){
+			$.ajax({
+			  url: url,
+			  beforeSend: function( xhr ) {
+                            $("#child_terms select").append(\'<option value="" selected="true">Processing...</option>\'); 
+			  },
+			  success: function( data ) {
+				$("#child_terms select option:selected").remove();
+			    $("#child_terms").html(data);
+                            $("#child_terms select").trigger("onchange"); 
+			  }
+			});
+		}
+		
+		function child_items(url){
+			//left: 462px; top: 517px; 
+			
+			$.ajax({
+			  url: url,
+                          dataType:"json",
+			  beforeSend: function( xhr ) {
+			    $("#srp_loading").removeClass("gone");
+			    $("#srp_loading").attr("style","left: "+(($(window).width() - $("#srp_loading").width()) / 2)+"px; top: "+(($(window).height() - $("#srp_loading").height()) / 2)+"px;");
+				
+			  },
+			  success: function( data ) {
+			    $("#srp_loading").addClass("gone");
+			    $("#srp_loading").attr("style","");
+			    $("#child-items").html(data.content);
+                            $("#part-serices-name").html(data.title);
+				
+			  }
+			});
+		}
+                
+                function jump_to(productType, brand_tid, model_nid){
+                    //alert(productType + brand_tid + model_nid);
+                    
+                            $("#srp_loading").removeClass("gone");
+			    $("#srp_loading").attr("style","left: "+(($(window).width() - $("#srp_loading").width()) / 2)+"px; top: "+(($(window).height() - $("#srp_loading").height()) / 2)+"px;");
+			
+
+                    window.location.href=Drupal.settings.basePath+"manufacturer/parts/"+productType+"/"+brand_tid+"/"+model_nid;
+                }
+             
+	</script>';
+    $output .= $script;
+   
+    if ($ctid == 2) {
+        $manufacture_model_options_html = ps_pages_ajax_child_terms($m_tid, $model_id, false);
+    } elseif($ctid == 1) {           
+        $manufacture_model_options_html = ps_pages_ajax_child_terms($manufacture_tid, $model_id, false);
+    }else{        
+     
+      $manufacture_model_options_html = ps_pages_ajax_child_terms($m_tid, $model_id, false);
+    }
+
+
+    $output .= '<li><strong>' . t('Model') . '</strong><br/><div id="child_terms">' . $manufacture_model_options_html . '</div></li>';
+    $output .= '</ul></div>';
+
+    $popstring = '
+	  <div id="srp_loading" class="gone">
+    
+	    <div id="srp_loading_content" class="bold f18">
+	        <img class="marr5" src="' . base_path() . 'sites/all/themes/partsmart/images/spinner_dots.gif" width="16" height="16" alt="">
+	    	Updating results...
+	     </div>
+	  </div>
+	';
+
+    $output .= $popstring;
+
+    return $output;
+}
+
+/* callback in theme */
+
+function ps_pages_category_now_viewing($tid, $parent_cateogry_tid, $sub_category_tid, $curr_tid, $pname, $pid, $tname) {
+
+
+ //   echo 'tid=' . $tid . '$parent_cateogry_tid' . $parent_cateogry_tid . '$sub_category_tid=' . $sub_category_tid . 'now view tid=' . $curr_tid . 'pname=' . $pname . 'pid=' . $pid . 'tname=' . $tname;
+
+
+    $curr_view_parent_tid = db_result(db_query("SELECT t.parent FROM {term_hierarchy} t WHERE t.tid=%d", $curr_tid));
+
+    if ($parent_cateogry_tid == 1) {
+        $level_1_tree = taxonomy_get_tree(PRINTER_PART_CATEGORY_VID, 0, -1, 1); // Get printer category tree of terms
+    }
+    if ($parent_cateogry_tid == 2) {
+        $level_1_tree = taxonomy_get_tree(COPIER_PART_CATEGORY_VID, 0, -1, 1); // Get Copier category tree of terms
+    }
+     if ($parent_cateogry_tid == 3) {
+        $level_1_tree = taxonomy_get_tree(CART_PART_CATEGORY_VID, 0, -1, 1); // Get cart category tree of terms
+    }
+    
+    $output = '<div class="product-main-category now_viewing">';
+    $selecthtml = '<select onChange="catelog_child_terms(\'' . base_path() . 'ajax/child-terms/\'+this.options[selectedIndex].value);">';
+    // echo '$manufacture_tid='.$manufacture_tid.'term id='.$node_term->tid.'$parent_tid='.$parent_tid;
+
+
+    foreach ($level_1_tree as $item) {
+        if ($item->tid == $sub_category_tid) {
+
+            $selecthtml .='<option value="' . $item->tid . '" selected="selected">' . $item->name . '</option>';
+        } else {
+            $selecthtml .='<option value="' . $item->tid . '">' . $item->name . '</option>';
+        }
+    }
+    $selecthtml .= '</select>';
+    $output .= '<ul><li><strong>' . t('Main Product Category') . '</strong><br/>' . $selecthtml . '</li>';
+    $script = '<script>
+					
+		function catelog_child_terms(url){
+			$.ajax({
+			  url: url,
+			  beforeSend: function( xhr ) {
+			  $("#child_terms select").append(\'<option value="" selected="true">Processing...</option>\'); 
+			  },
+			  success: function( data ) {
+				$("#child_terms select option:selected").remove();
+			    $("#child_terms").html(data);
+			  }
+			});
+		}
+		
+		function catelog_child_items(url){
+			//left: 462px; top: 517px; 
+			
+			$.ajax({
+			  url: url,
+			  beforeSend: function( xhr ) {
+			    $("#srp_loading").removeClass("gone");
+			    $("#srp_loading").attr("style","left: "+(($(window).width() - $("#srp_loading").width()) / 2)+"px; top: "+(($(window).height() - $("#srp_loading").height()) / 2)+"px;");
+			  },
+			  success: function( data ) {
+			    $("#srp_loading").addClass("gone");
+			    $("#srp_loading").attr("style","");
+                            $("#select_brand_list").html(data);
+			  }
+			});                 
+                        
+		}
+	</script>';
+    $output .= $script;
+    $printer_sub_category_options_html = ps_pages_ajax_printer_sub_category_terms($curr_view_parent_tid, $curr_tid, false);
+
+    $output .= '<li><strong>' . t('Sub Product Category') . '</strong><br/><div class="product-sub-category" id="child_terms">' . $printer_sub_category_options_html . '</div></li>';
+    $output .= '</ul></div>';
+
+    $popstring = '
+	  <div id="srp_loading" class="gone">
+    
+	    <div id="srp_loading_content" class="bold f18">
+	        <img class="marr5" src="' . base_path() . 'sites/all/themes/partsmart/images/spinner_dots.gif" width="16" height="16" alt="">
+	    	Updating results...
+	     </div>
+	  </div>
+	';
+
+    $output .= $popstring;
+
+    return $output;
+}
+
+/* callback to create the select options for a printer cateogroy
+ * * @param , $partegory_tid, the term tid of the level 1 category
+ * * @param, $current_view_tid, the current viewed term tid, usually a level 2 tid
+ */
+
+function ps_pages_ajax_printer_sub_category_terms($level_1_tid, $current_view_tid, $is_ajax=true) {
+    $tree = taxonomy_get_children($level_1_tid);
+    $selecthtml = '<select  onChange="catelog_child_items(\'' . base_path() . 'product-category/ajax/\'+this.options[selectedIndex].value);" style="width:188px;">';
+    foreach ($tree as $item) {
+        if ($current_view_tid > 0 && ($current_view_tid == $item->tid)) {
+            $selecthtml .='<option value="' . $item->tid . '" selected="selected">' . $item->name . '</option>';
+        } else {
+            $selecthtml .='<option value="' . $item->tid . '">' . $item->name . '</option>';
+        }
+    }
+    $selecthtml .= '</select>';
+    if ($is_ajax) {
+        echo $selecthtml;
+    } else {
+        return $selecthtml;
+    }
+}
+
+function ps_pages_now_viewing($tid, $pname, $pid, $tname) {
+    $output = '<div class="now_viewing">';
+    $output .= '<ul><li><strong>' . t('Main Product Category') . '</strong><br/>' . t($pname) . '' . l(t('Other'), 'product-category/' . $tid) . '</li>';
+    $output .= '<li><strong>' . t('Sub Product Category') . '</strong><br/>' . t($tname) . '' . l(t('Other'), 'taxonomy/term/' . $pid) . '</li>';
+    $output .= '</ul></div>';
+    return $output;
+}
+
+function ps_pages_now_viewing_nochilds($ctid, $tname) {
+    $output = '<div class="now_viewing">';
+    $output .= '<ul><li><strong>' . t('Main Product Category') . '</strong><br/>' . t($tname) . '' . l(t('Other'), 'product-category/' . $ctid) . '</li>';
+    $output .= '</ul></div>';
+    return $output;
+}
+
+/* display the detail category page,called by template.php
+ * *
+ */
+
+function ps_pages_sub_category_search($tid, $ctid) {
+    
+    global $user;
+
+    $brand_id = $_GET['bid'];
+    $orderby = $_GET['orderby'];
+    $m_id = $_GET['mid'];
+    $slt1 = ($orderby == 1) ? "selected" : '';
+    $slt2 = ($orderby == 2) ? "selected" : '';
+    $slt3 = ($orderby == 3) ? "selected" : '';
+    $slt4 = ($orderby == 4) ? "selected" : '';
+    $view = $_GET['view'];
+    if (empty($view)) {
+        $view = 1;
+    }
+    $vslt1 = ($view == 1) ? "selected" : '';
+    $vslt2 = ($view == 2) ? "selected" : '';
+    $vslt1 = ($view == '') ? "selected" : '';
+    if ($orderby == 1 || !is_numeric($orderby)) {
+        $orderby = ' ORDER BY p.nid DESC';
+    } else if ($orderby == 2) {
+        $orderby = ' ORDER BY field_part_release_date_value DESC';
+    } else if ($orderby == 3) {
+        $orderby = ' ORDER BY pc.field_part_rg_unitprice_value ASC';
+    } else if ($orderby == 4) {
+        $orderby = ' ORDER BY pc.field_part_rg_unitprice_value DESC';
+    }
+
+    if ($ctid == 1) { // printer
+        $field = 'field_part_prtbrand';
+        if (!empty($brand_id)) {
+
+
+            if (!empty($m_id)) {
+                $m_ids = array();
+                $m_ids = explode('-', $m_id);
+
+                $join = 'INNER JOIN {node} n ON n.nid = p.nid ';
+                $join .= 'INNER JOIN  {content_field_part_rg_unitprice} pc ON pc.nid = p.nid ';
+                $join .= " INNER JOIN {content_field_part_compatible_models} m ON m.nid = p.nid ";
+
+                $where .= " AND pc.delta = 0 ";
+                $where .= " AND m.field_part_compatible_models_nid IN (" . db_placeholders($m_ids, 'int') . ") ";
+
+
+                $args = array_merge(array($tid), $m_ids);
+            } else {
+                $brand_ids = array();
+                $brand_ids = explode('-', $brand_id);
+                $where = " AND b.field_part_prtbrand_value IN (" . db_placeholders($brand_ids, 'int') . ") ";
+
+                $where .= " AND pc.delta = 0 ";
+                $join = 'INNER JOIN {content_field_part_prtbrand} b ON p.nid = b.nid ';
+                $join .= 'INNER JOIN {node} n ON n.nid = p.nid ';
+                $join .= 'INNER JOIN  {content_field_part_rg_unitprice} pc ON pc.nid = p.nid ';
+                $args = array_merge(array($tid), $brand_ids);
+            }
+
+
+
+            $sql = "SELECT distinct(p.nid),pc.field_part_rg_unitprice_value FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where . ' ' . $orderby;
+
+
+            $sql_count = "SELECT   COUNT(p.nid) FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where;
+        } else {
+            $join = 'INNER JOIN {node} n ON n.nid = p.nid ';
+            $join .= 'INNER JOIN  {content_field_part_rg_unitprice} pc ON pc.nid = p.nid ';
+            $where = "  AND pc.delta = 0 ";
+            $sql = "SELECT p.nid FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where . $orderby;
+            $args = array($tid);
+            $sql_count = "SELECT COUNT(distinct(p.nid)) FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where;
+        }
+    } else if ($ctid == 2) { //copier
+        $field = 'field_part_cpbrand';
+
+
+
+        if (!empty($brand_id)) {
+            $brand_ids = array();
+            $brand_ids = explode('-', $brand_id);
+            $where = "AND b.field_part_cpbrand_value IN (" . db_placeholders($brand_ids, 'int') . ") ";
+            $where .= " AND pc.delta = 0 ";
+            $join = 'INNER JOIN {content_field_part_cpbrand} b ON p.nid = b.nid ';
+            $join .= 'INNER JOIN {node} n ON n.nid = p.nid ';
+            $join .= 'INNER JOIN  {content_field_part_rg_unitprice} pc ON pc.nid = p.nid ';
+            $sql = "SELECT distinct(p.nid),pc.field_part_rg_unitprice_value FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where . $orderby;
+            $args = array_merge(array($tid), $brand_ids);
+
+            $sql_count = "SELECT   COUNT(p.nid) FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where;
+        } else {
+            $join = 'INNER JOIN {node} n ON n.nid = p.nid ';
+            $join .= 'INNER JOIN  {content_field_part_rg_unitprice} pc ON pc.nid = p.nid ';
+            $where = "  AND pc.delta = 0 ";
+            $sql = "SELECT p.nid FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where . $orderby;
+            $args = array($tid);
+            $sql_count = "SELECT COUNT(distinct(p.nid)) FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where;
+        }
+    } else if ($ctid == 3) { // cartridge
+         $field = 'field_part_cartbrand';
+
+        if (!empty($brand_id)) {
+            $brand_ids = array();
+            $brand_ids = explode('-', $brand_id);
+            $where = "AND b.field_part_cartbrand_value IN (" . db_placeholders($brand_ids, 'int') . ") ";
+            $where .= " AND pc.delta = 0 ";
+            $join = 'INNER JOIN {content_field_part_cartbrand} b ON p.nid = b.nid ';
+            $join .= 'INNER JOIN {node} n ON n.nid = p.nid ';
+            $join .= 'INNER JOIN  {content_field_part_rg_unitprice} pc ON pc.nid = p.nid ';
+            $sql = "SELECT distinct(p.nid),pc.field_part_rg_unitprice_value FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where . $orderby;
+            $args = array_merge(array($tid), $brand_ids);
+
+            $sql_count = "SELECT   COUNT(p.nid) FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where;
+        } else {
+            $join = 'INNER JOIN {node} n ON n.nid = p.nid ';
+            $join .= 'INNER JOIN  {content_field_part_rg_unitprice} pc ON pc.nid = p.nid ';
+            $where = "  AND pc.delta = 0 ";
+            $sql = "SELECT p.nid FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where . $orderby;
+            $args = array($tid);
+            $sql_count = "SELECT COUNT(distinct(p.nid)) FROM {content_type_product} p INNER JOIN {term_node} tn ON p.nid = tn.nid " . $join . " WHERE tn.tid  = %d " . $where;
+        }
+    }
+
+    $node_count = db_result(db_query($sql_count, $args));
+
+    $sql = db_rewrite_sql($sql);
+
+    $result = pager_query($sql, 10, 0, NULL, $args);
+
+    $data = array();
+    $brand_link = array();
+    while ($item = db_fetch_object($result)) {
+        $node = node_load($item->nid);
+        if ($node->field_image_cache[0]['filepath'] != '') {
+            $file = $node->field_image_cache[0]['filepath'];
+        } else {
+            $file = drupal_get_path('theme', 'partsmart') . '/images/blank.jpg';
+        }
+        if (!file_exists($file)) {
+            $file = drupal_get_path('theme', 'partsmart') . '/images/blank.jpg';
+        }
+        $img = '<a href="' . url('node/' . $node->nid) . '"><img src="' . imagecache_create_url("s90x93", $file) . '" alt=""></a>';
+        $bids = $node->{"$field"};
+				
+        $pricec = ps_pages_get_shop_price($user->uid, $node->field_price_c_customer, $node->field_price_volume_range, $node->field_part_unitprice);
+        if (empty($pricec)) {
+            $customer_price = $node->field_part_rg_unitprice[0]['value'];
+        }
+
+        $comm_price = $node->field_part_rg_unitprice[0]['value'];
+
+        foreach ($bids as $bid) {
+            $brand = taxonomy_get_term($bid['value']);
+            $brand_link[] = l(t($brand->name), 'taxonomy/term/' . $brand->tid);
+        }
+
+        if ($view == 2) {
+            $row[] = array(
+                array('data' => l($node->title, 'node/' . $node->nid), 'class' => 'rw_oempn'),
+                array('data' => $node->model, 'class' => 'rw_pn'),
+                array('data' => $node->body, 'class' => 'rw_desc'),
+                array('data' => '$ ' . number_format($comm_price, 2, '.', ''), 'class' => 'rw_price'),
+                array('data' => l(t('Add to cart'), 'ps/addtocart/' . $node->nid), 'class' => 'rw_addtocart')
+            );
+        } else {
+
+
+            $content = '<ul><li class="list_name">' . implode(',', $brand_link) . '</li><li class="list_body"><a href="' . url('node/' . $node->nid) . '">' . $node->body . '</a></li><li class="oen_pn"><span>' . t('OEN PN') . '</span>' . $node->model . '</li><li  class="ps_pn"><span>' . t('Partsmart PN') . '</span>' . $node->title . '</li></ul>';
+            $addtocart = '<ul><li class="unitprice">$ ' . number_format($comm_price, 2, '.', '') . '</li><li class="addtocart">' . l(t('Add to cart'), 'ps/addtocart/' . $node->nid) . '</li><li class="viewdetails">' . l(t('View Details'), 'node/' . $node->nid) . '</li></ul>';
+
+            $items[] = array(
+                'data' => '<div class="grid_1">' . $img . '</div><div class="grid_2">' . $content . '</div><div class="grid_3">' . $addtocart . '</div><div class="clear"></div>',
+                'class' => 'search_top_list');
+        }
+        unset($brand_link);
+    }
+    // $header = array('Show 1 of 10 of '.$node_count.' results','view','Sortby');
+
+    global $pager_page_array;
+
+    $count_first = $pager_page_array[0] * 10 + 1;
+    if (($pager_page_array[0] + 1) * 10 > $node_count) {
+        $count_last = $node_count;
+    } else {
+        $count_last = $pager_page_array[0] * 10 + 10;
+    }
+
+    $header = '<ul class="search_brand_header"><li class="count_list">Show ' . $count_first . ' - ' . $count_last . ' of ' . $node_count . ' results</li><li class="view_list">View <select id="pagview"  onchange="window.location.href=this.options[this.selectedIndex].value"><option value="' . url($_GET['q'], array('query' => ps_pages_drupal_get_link('view', 1))) . '" ' . $vslt1 . '> Icon </option><option value="' . url($_GET['q'], array('query' => ps_pages_drupal_get_link('view', 2))) . '" ' . $vslt2 . '> List </option></select></li><li class="sortby_list">Sortby<select id="pagsortby"  onchange="window.location.href=this.options[this.selectedIndex].value"><option value="' . url($_GET['q'], array('query' => ps_pages_drupal_get_link('orderby', 1))) . '" ' . $slt1 . '> Best Results </option><option value="' . url($_GET['q'], array('query' => ps_pages_drupal_get_link('orderby', 2))) . '" ' . $slt2 . '> By Release Date </option><option value="' . url($_GET['q'], array('query' => ps_pages_drupal_get_link('orderby', 3))) . '" ' . $slt3 . '> By Price Range Low to High</option><option value="' . url($_GET['q'], array('query' => ps_pages_drupal_get_link('orderby', 4))) . '" ' . $slt4 . '>By Price Range High to Low</option></select></li></ul>';
+
+
+    //	$output =  theme('item_list',$items,NULL,'ul',array('id'=>'select_brand_tb'));
+
+    if ($view == 1) {
+        $list_content = theme('item_list', $items, NULL, 'ul', array('id' => 'select_brand_tb'));
+    } else {
+        $tbheader = array(
+            array('data' => 'OEM PN', 'class' => 'hd_oempn'),
+            array('data' => 'Partsmart PN', 'class' => 'hd_pn'),
+            array('data' => 'Description', 'class' => 'hd_desc'),
+            array('data' => 'Price', 'class' => 'hd_price'),
+            array('data' => 'Add to cart', 'class' => 'hd_addtocart')
+        );
+        $list_content = theme('table', $tbheader, $row, array('id' => 'list_tbl'));
+    }
+
+    $pager = theme('pager', array('<<', '<', '', '>', '>>'), 10, 0);
+
+
+    $output.='<div id="select_brand_list">' . $header . $pager . $list_content . '</div>';
+    return $output;
+}
+
+function ps_pages_drupal_get_link($key = '', $value = '') {
+    $r = $_REQUEST;
+    $r = array('q' => $r['q'], 'bid' => $r['bid'], 'orderby' => $r['orderby'], 'page' => $r['page']);
+    $string = drupal_query_string_encode($r, array_merge(array('q', $key)));
+    $search = $key . '=' . $value;
+    if ($string != '') {
+        $query = array($search, $string);
+    } else {
+        $query = array($search);
+    }
+    $query = count($query) ? implode('&', $query) : NULL;
+    return $query;
+}
+
+function ps_pages_drupal_get_link2($value = '') {
+    if (!empty($value)) {
+        $bids = explode('-', $_GET['bid']);
+        if (in_array($value, $bids)) {
+            $bids2 = array_diff($bids, array($value));
+        } else {
+            $bids[] = $value;
+            $bids2 = $bids;
+        }
+    } else {
+        $bids2 = array();
+    }
+
+    $query = array(
+        'orderby' => $_GET['orderby'],
+        'page' => $_GET['page'],
+        'view' => $_GET['view'],
+        'bid' => implode('-', $bids2),
+    );
+
+    return $query;
+}
+
+// tid is in Cartridge Parts Category/ Cartridge Parts Category /Printer Manufacturer
+// vid  brand category
+function ps_pages_select_a_brand($vid, $tid) {
+
+    $brand_id = $_GET['bid'];
+    $m_id = $_GET['mid'];
+    $query = array();
+    $brands_arr = array();
+    $brands_arr = explode('-', $brand_id);
+    $m_arr = array();
+    $m_arr = explode('-', $m_id);
+    
+    if (is_numeric($cid) && $cid == 3) {
+        $query = array('cid' => $cid);
+    }
+    if ($vid == 2) { //printer brand 
+        $countSql = "SELECT   COUNT(b.nid)   FROM {content_field_part_prtbrand} b INNER JOIN {node} n ON b.vid = n.vid INNER JOIN {term_node} t ON t.vid = b.vid WHERE n.status = 1 AND n.type = '%s' AND t.tid = %d AND b.field_part_prtbrand_value = %d  ";
+
+
+        $modelSql = "SELECT n.nid,n.title FROM {node} n INNER JOIN {term_node} td ON n.nid = td.nid INNER JOIN {content_type_printer_model} m ON m.nid = n.nid 
+			WHERE n.type = 'printer_model'  AND m.field_model_parents_nid IS NULL AND td.tid = %d";
+    } else if ($vid == 5) { //copier
+        $countSql = "SELECT   COUNT(b.nid)   FROM {ps_part} b INNER JOIN {node} n ON b.nid = n.nid WHERE n.status = 1 AND n.type = '%s' AND b.category = %d AND b.brand = %d  ";
+       
+     } else if ($vid == 7) { //cart
+        $countSql = "SELECT   COUNT(b.nid)   FROM {ps_part} b INNER JOIN {node} n ON b.nid = n.nid  WHERE n.status = 1 AND n.type = '%s' AND b.category = %d AND b.brand = %d  ";
+        $modelSql = "SELECT n.nid,n.title FROM {node} n INNER JOIN {term_node} td ON n.nid = td.nid INNER JOIN {content_type_cart_model} m ON m.nid = n.nid 
+			WHERE n.type = 'cart_model'  AND td.tid = %d";
+        
+    }
+
+    
+
+    $sql = "SELECT t.tid,t.name FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE h.parent = 0 AND t.vid = %d ORDER BY t.weight ASC";
+    $result = db_query($sql, $vid);
+
+    $items = array();
+    $allselected = empty($brand_id) ? 'selected' : '';
+    $items[] = l(t('All') . '', 'taxonomy/term/' . $tid, array('query' => $query, 'attributes' => array('class' => $allselected)));
+    while ($term = db_fetch_object($result)) {
+
+        $count = db_result(db_query($countSql, 'product', $tid, $term->tid));
+
+        if ($count) {
+            $items[] = l(t($term->name) . ' (' . $count . ')', 'taxonomy/term/' . $tid, array('query' => array('bid' => $brands, 'mid' => $childms), 'attributes' => array('class' => 'select_parent ' . $style))) . $childstr;
+            unset($style, $orphans, $count, $childs, $child_items, $childstr);
+        }
+    }
+
+
+
+    if (!empty($items)) {
+        return theme('item_list', $items, NULL, 'ul', array('class' => 'selectabrand'));
+    }
+}
+
+/* display a category block in the left colum
+ * @param, $vid, the catelog vid
+ * @ctid: the term id of product type
+ * @btid , manufactuer tid
+ */
+
+function ps_pages_select_a_category($vid, $ctid, $btid, $model_id) {
+    
+    $output = '';
+    if ($_GET['bid']) {
+        $brand_id = $_GET['bid'];
+    }
+    $query = array();
+    $brands_arr = array();
+    $brands_arr = explode('-', $brand_id);
+   
+    $sql = "SELECT t.tid,t.name FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE h.parent = 0 AND t.vid = %d ORDER BY t.weight ASC";
+    $result = db_query($sql, $vid);
+    $items = array();
+    $allselected = empty($brand_id) ? 'selected' : '';
+    $items[] = l(t('All') . '', $_GET['q'], array('query' => ps_pages_drupal_get_link2(), 'attributes' => array('tid'=>0, 'class' => $allselected)));
+
+    while ($term = db_fetch_object($result)) {
+        
+        $selected_style = '';
+        if (in_array($term->tid, explode('-', $_GET['bid']))) {
+            $selected_style = ' selected';
+        }
+        $orphans = array();
+        if ($children = taxonomy_get_children($term->tid)) {
+            foreach ($children as $child) {
+                $orphans[] = $child->tid;
+                $child_items[] = array('name' => $child->name, 'tid' => $child->tid);
+            }
+        }
+
+        $childs = array_merge(array($term->tid), $orphans);
+     
+        if ($vid == 3) { //printer brand
+            $sqlc = "SELECT   COUNT(b.nid)   FROM {ps_part} b INNER JOIN {node} n ON b.nid = n.nid  WHERE n.status = 1 AND n.type = 'product' AND b.category IN (" . db_placeholders($childs, 'int') . ") AND b.model = %d  ";
+        } else if ($vid == 4) {  //cartridge
+             $sqlc = "SELECT   COUNT(b.nid)   FROM {ps_part} b INNER JOIN {node} n ON b.nid = n.nid  WHERE n.status = 1 AND n.type = 'product' AND b.category IN (" . db_placeholders($childs, 'int') . ") AND b.model = %d  ";
+            
+        } else if ($vid == 6) { //copier
+          //  $childs = array($term->tid);
+          //  $sqlc = "SELECT   COUNT(b.nid)   FROM {content_field_part_copier_models} b INNER JOIN {node} n ON b.vid = n.vid INNER JOIN {term_node} t ON t.vid = b.vid WHERE n.status = 1 AND n.type = 'product' AND t.tid IN (" . db_placeholders($childs, 'int') . ") AND b.field_part_copier_models_nid = %d  ";
+              $sqlc = "SELECT   COUNT(b.nid)   FROM {ps_part} b INNER JOIN {node} n ON b.nid = n.nid  WHERE n.status = 1 AND n.type = 'product' AND b.category IN (" . db_placeholders($childs, 'int') . ") AND b.model = %d  ";
+        }
+
+        $count = db_result(db_query($sqlc, array_merge($childs, array($model_id))));
+
+        $brands = psproject_filter_search_args($brand_id, $term->tid);
+
+        if (in_array($term->tid, $brands_arr) || array_intersect($orphans, $brands_arr)) {
+            $style = 'selected';
+        }
+        if (!empty($child_items)) {
+
+            foreach ($child_items as $child_item) {
+                $childBrands = psproject_filter_search_args($brand_id, $child_item['tid']);
+                if (in_array($child_item['tid'], $brands_arr)) {
+                    $chlidStyle = 'selected';
+                }
+                $childstr .= '<li>' . l($child_item['name'], $_GET['q'], array('query' => ps_pages_drupal_get_link2($term->tid), 'attributes' => array('class' => $chlidStyle . $selected_style))) . '</li>';
+                unset($chlidStyle);
+            }
+        }
+        if (!empty($childstr)) {
+            $childstr = '<ul class="child_selected"><span class="close_selected">Close X</span>' . $childstr . '</ul>';
+        }
+        $url = url('manufacturer/parts/' . $ctid . '/' . $btid . '/' . $model_id);
+        if ($count) { //if 0, then don't display it
+            $items[] = l(t($term->name) . ' (' . $count . ')', $url, array('query' => ps_pages_drupal_get_link2($term->tid), 'attributes' => array('tid'=>$term->tid, 'class' => ' select_parent ' . $style . $selected_style))) . $childstr;
+            unset($style, $orphans, $count, $childs, $child_items, $childstr);
+        }
+    }
+
+
+
+    if (!empty($items)) {
+        $output .= theme('item_list', $items, NULL, 'ul', array('class' => 'selectabrand'));
+    }
+    $script = '<script>		
+		
+		function getCategoryResult(url,bid){
+			//left: 462px; top: 517px; 
+			
+			$.ajax({
+			  url: url,
+			  //data:{bid:bid},
+			  beforeSend: function( xhr ) {
+			    $("#srp_loading").removeClass("gone");
+			    $("#srp_loading").attr("style","left: "+(($(window).width() - $("#srp_loading").width()) / 2)+"px; top: "+(($(window).height() - $("#srp_loading").height()) / 2)+"px;");
+			  },
+			  error: function(xhr, status, error){
+                    $("#srp_loading").addClass("gone");
+			        $("#srp_loading").attr("style","");
+				    alert("error=" + error + "Please try again later");
+               },
+			  success: function( data ) {
+			    $("#srp_loading").addClass("gone");
+			    $("#srp_loading").attr("style","");
+				
+
+				var name = $("#child_terms select").val();
+				$("span#page-title").html(); 
+				
+			    $("#child-items").html(data);
+			  }
+			});
+		}
+                
+                function FilterCategoryResult(current){
+                    tidStr = new Array(); 
+                    $("ul.selectabrand li a.selected").each(function(e){
+                        tidStr.push($(this).attr(\'tid\'));
+                        
+                    });
+                    var s=  tidStr.join(\'-\');
+                  //  alert(s);
+                    
+                  //  var url = $(this).attr(\'href\');
+                  //  alert(url);                   
+                }
+	</script>';
+    $output .= $script;
+    return $output;
+}
+
+function taxonomy_get_nested_tree($terms = array(), $max_depth = NULL, $parent = 0, $parents_index = array(), $depth = 0) {
+    if (is_int($terms)) {
+        $terms = taxonomy_get_tree($terms);
+    }
+
+    foreach ($terms as $term) {
+        foreach ($term->parents as $term_parent) {
+            if ($term_parent == $parent) {
+                $return[$term->tid] = $term;
+            } else {
+                $parents_index[$term_parent][$term->tid] = $term;
+            }
+        }
+    }
+
+    foreach ($return as &$term) {
+        if (isset($parents_index[$term->tid]) && (is_null($max_depth) || $depth < $max_depth)) {
+            $term->children = taxonomy_get_nested_tree($parents_index[$term->tid], $max_depth, $term->tid, $parents_index, $depth + 1);
+        }
+    }
+
+    return $return;
+}
+
+function psproject_filter_search_args($brand_id, $selfid) {
+    $brands_arr = array();
+    $brands_arr = explode('-', $brand_id);
+    if (!empty($brand_id)) {
+        $brands = array_diff(array($selfid), $brands_arr);
+        if (!empty($brands)) {
+            $brands_str = array_merge(array($selfid), $brands_arr);
+            $brands = implode('-', $brands_str);
+        } else {
+            unset($bs);
+            $bs = array();
+            foreach ($brands_arr as $ss) {
+                if ($ss == $selfid) {
+                    
+                } else {
+                    $bs[] = $ss;
+                }
+            }
+            $brands = implode('-', $bs);
+        }
+    } else {
+        $brands = $selfid;
+    }
+
+    return $brands;
+}
+
+/* hook_search
+ * *
+ */
+
+function hook_search($op = 'search', $keys = NULL) {
+    switch ($op) {
+        case 'name':
+            return t('Part');
+
+        case 'search':
+            list($join1, $where1) = _db_rewrite_sql();
+            $arguments1 = array();
+            $conditions1 = 'n.status = 1';      // NEW BIT START     
+            $allowed = array('part');
+            $types = array();
+            foreach ($allowed as $t) {
+                $types[] = "n.type = '%s'";
+                $arguments1[] = $t;
+            }
+            $conditions1 .= ' AND (' . implode(' OR ', $types) . ')';
+            $keys = search_query_insert($keys, 'type');
+
+            break;
+    }
+}

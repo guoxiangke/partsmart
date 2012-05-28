@@ -1,0 +1,27 @@
+#edit-taxonomy-3-wrapper {display:none;}
+#edit-taxonomy-4-wrapper {display:none;}
+#edit-field-part-compatible-0-value-wrapper {display:none;}
+#select-part-printer-models {display:none;}
+#select-part-copier-models {display:none;}
+.product_category  ul.child_selected  {
+
+display:none;position: absolute;
+z-index: 9999;
+width: 996px;
+border: 1px dashed #CCC;
+ border-bottom: 0;
+margin-left: -38px;
+margin-top: 2px;
+border-left: 0;padding-bottom: 10px;
+border-right: 0;
+background:white url("ubg.gif") repeat-x left bottom;
+
+}
+.product_category .item-list ul.child_selected li {display: block;
+float: left;
+margin: 10px;}
+.product_category  a.select_active {font-weight:bold;}
+.close_selected {text-align: right;
+display: block;
+margin-right: 30px;
+margin-top: 10px;cursor: pointer; font-weight:bold;}

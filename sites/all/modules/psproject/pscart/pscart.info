@@ -1,0 +1,5 @@
+name = PS cart
+description =  manage cart
+package = Partsmart
+version = VERSION
+core = 6.x

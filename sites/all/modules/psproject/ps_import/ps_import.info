@@ -1,0 +1,6 @@
+name = PS import
+description = Allows users to import node content from a CSV or TSV file.
+package = Partsmart
+core = 6.x
+php = 5
+dependencies[] = date_api

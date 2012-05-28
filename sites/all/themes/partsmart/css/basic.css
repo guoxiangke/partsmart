@@ -1,0 +1,24 @@
+@charset "utf-8";
+
+/* CSS Document */
+body {font:12px/120% Arial, Helvetica, sans-serif;margin:0;padding:0;text-align:left;color:#000000;background:#ffffff url(../images/headerbg.jpg) no-repeat center top;}
+div, form, img, ul, ol, li, dl, dt, dd {margin:0;padding:0;border:0;}
+table, tr, td, ul, form, p, h1, h2, h3, h4, h5, h6 {margin:0;padding:0;}
+h1, h2, h3, h4, h5, h6 {font-size:12px;font-weight:normal;}
+img, ul, li {border:0;list-style:none;margin:0;padding:0;}
+.clear {height:0;line-height:0;font-size:0;clear:both;}
+.floatl{ float:left; display:inline;}
+.floatr{ float:right;}
+
+/*解决在IE和firefox下面点图片出现的虚框*/
+a {blr:expression(this.onFocus=this.blur())}/*针对 IE*/
+a {outline:none;}/*针对firefox等*/
+
+/* 链接颜色 */
+a:link {color:#74AD1C;text-decoration:none;}
+a:visited {color:#74AD1C;text-decoration:none;}
+a:hover {color:#74AD1C;text-decoration:underline;}
+a:active {color:#74AD1C;text-decoration:none;}
+
+.blue{ color:#74ad1c;}
+.hui{ color:#787878;}

@@ -1,0 +1,6 @@
+
+name = Partsmart Search
+description = Provide a search box show in the front page, it include the basic text search plus the taxonomy search
+package = Partsmart
+
+core = 6.x
