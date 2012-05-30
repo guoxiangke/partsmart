@@ -32,7 +32,9 @@ function partsmart_preprocess_page(&$vars, $hook) {
         case 'news':
             $vars['breadcrumb'] = l('About Us', 'content/about-us') . ' > Headline';
             $vars['category_name'] = 'Company Headline';
-            break;
+			$vars['left'] = 0;
+
+        break;
 
         case 'customer-support':
             if (arg(1) == 'contact-us') {
@@ -43,68 +45,88 @@ function partsmart_preprocess_page(&$vars, $hook) {
             } else {
                 $vars['breadcrumb'] = l('About Us', 'content/about-us') . ' > Headline';
             }
-            break;
+			$vars['left'] = 0;
+
+        break;
 
 
-       
+
 		case 'printer':
 			$breadcrumb[] = 'Printer Parts';
 			$vars['breadcrumb'] = implode(' > ', $breadcrumb);
 			$vars['category_name'] = t('Explore Printer Parts');
-			if(arg(1) == 'brand' || arg(1) == 'category'){
-				$vars['left'] = 0;
-			}
-			else{
-				$vars['left'] = 1;
-			}
+
+
+
+
+			$vars['left'] = 1;
+
 		break;
 		
 		case 'copier':
 			$breadcrumb[] = 'Copier Parts';
 			$vars['breadcrumb'] = implode(' > ', $breadcrumb);
 			$vars['category_name'] = t('Explore Copier Parts');
-			if(arg(1) == 'brand'){
-				$vars['left'] = 0;
-			}
-			else{
-				$vars['left'] = 1;
-			}
+
+			$vars['left'] = 1;
+
+
+
+
 		break;
 		
 		case 'cartridge':
 			$breadcrumb[] = 'Cartridge Parts';
 			$vars['breadcrumb'] = implode(' > ', $breadcrumb);
 			$vars['category_name'] = t('Explore Cartridge Parts');
-			if(arg(1) == 'brand'){
-				$vars['left'] = 0;
-			}
-			else{
-				$vars['left'] = 1;
-			}
+
+			$vars['left'] = 1;
+
+
+
+
 		break;
 		
 		case 'user':
 			$breadcrumb[] = 'USER';
 			$vars['breadcrumb'] = implode(' > ', $breadcrumb);
-			
-			$vars['left'] = 2;
+
+			$vars['left'] = 0;
 		break;
 		
 		case 'parts_list':
 			$breadcrumb[] = 'Parts_list';
 			$vars['breadcrumb'] = implode(' > ', $breadcrumb);
-			
-			$vars['left'] = 3;
+
+			$vars['left'] = 1;
 		break;
 		
-     
-    case 'cart':
+
+    	case 'cart':
 			$breadcrumb[] = 'Printer Parts';
 			$vars['breadcrumb'] = implode(' > ', $breadcrumb);
 			$vars['category_name'] = t('Explore Printer Parts');
-    break;
-		default :
+			$vars['left'] = 1;
+    	break;
+	
+		case 'parts_search':
+			$breadcrumb[] = 'Parts Search';
+			$vars['breadcrumb'] = implode(' > ', $breadcrumb);
+			$vars['category_name'] = t('Parts Search');
 			$vars['left'] = 2;
+
+
+
+
+
+
+
+
+		break;
+		
+
+		default :
+			$vars['left'] = 0;
 		break;
     }
 

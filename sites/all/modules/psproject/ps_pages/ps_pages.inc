@@ -284,3 +284,79 @@ function parts_best() {
 	$output .='<div class="product"><ul>'.$best_html.'</ul><div class="clear"></div></div>';
 	return $output;
 }
+
+function parts_search() {
+	
+	global $user;
+	global $base_url;
+	global $base_path;
+	global $pager_page_array;
+	global $pager_total;
+	global $pager_total_items;
+		
+	drupal_set_title('');
+	$output = '';
+	$search =  $_GET['search'];
+	
+	
+	if($search){
+		$list_html = '';
+		$limit = 10;
+		$sql =  "SELECT n.nid FROM {node} n WHERE n.title LIKE '%%%s%%' AND n.type IN ('%s','%s','%s')";
+		$result = pager_query($sql, $limit, 0, NULL, $search, 'printer', 'copier', 'cartridge');
+		while ($item = db_fetch_object($result)) {
+			$node = node_load($item->nid);
+			if(file_exists('sites/default/files/product/' . $node->title .'.jpg')) {
+				$imgs = '<a href="'.$base_path.'node/'.$node->nid.'"><img src="'.imagecache_create_url("s93x104",'sites/default/files/product/' . $node->title .'.jpg'). '" alt="" /></a>';
+			} 
+			else {
+				$imgs  = '<a href="'.$base_path.'node/'.$node->nid.'"><img src="'. imagecache_create_url("s93x104", 'sites/default/files/default_images/blank.jpg') . '" alt="" /></a>';
+			}
+		
+			$part_brand = array();
+			foreach($node->taxonomy as $key => $value) {
+				if($value->vid == 2) {
+					foreach(taxonomy_get_parents($value->tid) as $v){
+						if(!in_array($v->name,$part_brand)){
+							$part_brand[] = $v->name;
+						}
+					}
+				}
+			}
+					
+			$content = '<ul><li class="list_body">'. l($node->body,'node/'.$node->nid) .'</li><li class="list_body">'. implode(',  ',$part_brand) .'</li><li class="oen_pn"><span>' . t('OEM PN') . '</span>' . $node->model . '</li><li  class="ps_pn"><span>' . t('Partsmart PN') . '</span>' . $node->title . '</li></ul>';
+
+			$prices = array();
+			if(array_key_exists(3,$user->roles)){
+				if($node->field_part_price1[0][value] != 0) $prices[] ='(+1)$ ' . number_format($node->field_part_price1[0]['value'],2,'.','');
+				if($node->field_part_price10[0][value] != 0) $prices[] ='(+10)$ ' . number_format($node->field_part_price10[0]['value'],2,'.','');
+				if($node->field_part_price100[0][value] != 0) $prices[] ='(+100)$ ' . number_format($node->field_part_price100[0]['value'],2,'.','');
+			}else{
+				$prices[] = $node->field_part_unitprice[0]['value'] == 0 ? 'N/A' : '$ ' . number_format($node->field_part_unitprice[0]['value'],2,'.','');
+			}
+
+			$addtocart = '<ul><li class="unitprice">' . implode(',',$prices) . '</li><li class="addtocart">' . l(t('Add to cart'), 'ps/addtocart/' . $node->nid) . '</li><li class="viewdetails">' . l(t('View Details'), 'node/' . $node->nid) . '</li></ul>';
+		
+			$items[] = array(
+                'data' => '<div class="grid_1">' . $imgs . '</div><div class="grid_2">' . $content . '</div><div class="grid_3">' . $addtocart . '</div><div class="clear"></div>',
+                'class' => 'search_top_list'
+            );
+		}
+	}
+
+	$list_content = theme('item_list', $items, NULL, 'ul', array('id' => 'select_brand_tb'));
+	
+	if($pager_page_array[0] == ($pager_total[0]-1)) {
+		$pager_item_first = $pager_page_array[0] * $limit + 1;
+		$pager_item_last = $pager_total_items[0];
+	}
+	else {
+		$pager_item_first = $pager_page_array[0] * $limit + 1;
+		$pager_item_last = $pager_page_array[0] * $limit + $limit;
+	}
+	$header = '<div class="search_brand_header"><div class="count_list">Show '. $pager_item_first .' - ' . $pager_item_last . ' of  ' . $pager_total_items[0] . ' results</div></div>';
+	
+	$pager = theme('pager', array('<<', '<', '', '>', '>>'), 10, 0);
+	$output .= '<div id="select_brand_list">' . $header . $pager . $list_content . '</div>';
+	return $output;
+}

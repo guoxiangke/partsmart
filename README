@@ -1,7 +1,17 @@
 partsmart 项目文档 20120528 更新
 sites/all/modules/psproject
 sites/all/modules/themes/partsmart
+--------------20120531 7:21------------
+$ git commit -m '20120531 zhao'
+ modified:   sites/all/modules/psproject/ps_pages/ps_pages.inc
+ modified:   sites/all/modules/psproject/ps_pages/ps_pages.module
+ modified:   sites/all/themes/partsmart/left.php
+ modified:   sites/all/themes/partsmart/template.php
+ 还差个js，那个文件我弄错了，需要赵老师重新传一下。
+ 
 
+
+-------------------------------------
 $ git commit -m '20120530 dale'
 [master b086ccc] 20120530 dale
  8 files changed, 943 insertions(+), 7 deletions(-)

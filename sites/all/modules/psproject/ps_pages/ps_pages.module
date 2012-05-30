@@ -160,6 +160,12 @@ function ps_pages_menu() {
         'type' => MENU_CALLBACK,
 				'file' => 'ps_pages.inc'
     );
+	$items['parts_search'] = array(
+        'page callback' => 'parts_search',
+        'access callback' => TRUE,
+		'file' => 'ps_pages.inc',
+        'type' => MENU_CALLBACK
+    );
 	
 	$items['ajax_mainmodel'] = array(
         'page callback' => 'ajax_mainmodel',
@@ -616,9 +622,10 @@ function ajax_partslist() {
 		$header = '<div class="search_brand_header">
 		<div class="count_list">Show '. $pager_item_first .' - ' . $pager_item_last . ' of  ' . $pager_total_items[0] . ' results</div>'. $viewlist_html . $sortby_html . $limit_html .'</div>';
  
-   	
-    $pager = theme('pager', array('<<', '<', '', '>', '>>'), 10, 0);
-  
+   	$pager = '<div id="search_parts_pager">';
+
+    $pager .= theme('pager', array('<<', '<', '', '>', '>>'), 10, 0);
+  	$pager .= '</div>';
     $output .= $model_html . '<div id="select_brand_list">' . $header . $pager . $list_content . $header . $pager.'</div>';
  		
 		$matches =array();

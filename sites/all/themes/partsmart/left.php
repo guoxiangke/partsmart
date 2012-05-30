@@ -19,10 +19,14 @@
 					$parts_model_vid = 7;
 				break;
 				}
-				foreach(taxonomy_get_tree($parts_model_vid,0,-1,1) as $term) {
-					$count = 0;	
-					$count = db_result(db_query("SELECT COUNT(distinct n.nid) FROM {node} n WHERE n.nid IN (SELECT tn.nid FROM {node_brand} tn WHERE tn.brand = %d) AND n.type = '%s'", $term->tid, $parts_type));					
-					$term_list .= '<li id="'. $term->tid .'" class="brand-item"><input type="checkbox" name="'. $term->tid .'">'. $term->name .'(<img class="small_loading" src="'.$base_path.'sites/all/themes/partsmart/images/small_loading.gif" /><span class="parts_num" value="'.$count.'">'. $count .'</span>)</li>';
+				foreach(taxonomy_get_tree($parts_model_vid) as $term) {
+					if($term->depth === 0) {
+						$count = 0;
+						$mainmodels = array_keys(taxonomy_get_children(array($term->tid)));
+						
+						$count = db_result(db_query("SELECT COUNT(distinct n.nid) FROM {node} n WHERE n.nid IN (SELECT tn.nid FROM {term_node} tn WHERE tn.tid IN (". implode(",",$mainmodels) .")) AND n.type = '%s'", $parts_type));					
+						$term_list .= '<li id="'. $term->tid .'" class="brand-item"><input type="checkbox" name="'. $term->tid .'">'. $term->name .'(<img class="small_loading" src="'.$base_path.'sites/all/themes/partsmart/images/small_loading.gif" /><span class="parts_num" value="'.$count.'">'. $count .'</span>)</li>';
+					}
 				}
 				print $term_list;
 				}
@@ -54,10 +58,14 @@
 					$parts_category_vid = 4;
 				break;
 				}
-				foreach(taxonomy_get_tree($parts_category_vid,0,-1,1) as $term) {
-					$count = 0;
-					$count = db_result(db_query("SELECT COUNT(distinct n.nid) FROM {node} n WHERE n.nid IN (SELECT tn.nid FROM {node_category} tn WHERE tn.category = %d) AND n.type = '%s'", $term->tid, $parts_type));
-					$term_list .= '<li id="'. $term->tid .'" class="category-item"><input type="checkbox" name="'.$term->tid.'">'. $term->name .'(<img class="small_loading" src="'.$base_path.'sites/all/themes/partsmart/images/small_loading.gif" /><span class="parts_num" value="'.$count.'">'. $count .'</span>)</li>';
+				foreach(taxonomy_get_tree($parts_category_vid) as $term) {
+					if($term->depth === 0) {
+						$count = 0;
+						foreach(taxonomy_get_children(array($term->tid)) as $model_term) {
+							$count += db_result(db_query("SELECT COUNT(nid) FROM {term_node} WHERE tid = %d",$model_term->tid));
+						}	
+						$term_list .= '<li id="'. $term->tid .'" class="category-item"><input type="checkbox" name="'.$term->tid.'">'. $term->name .'(<img class="small_loading" src="'.$base_path.'sites/all/themes/partsmart/images/small_loading.gif" /><span class="parts_num" value="'.$count.'">'. $count .'</span>)</li>';
+					}
 				}
 				print $term_list;
 				}
@@ -88,25 +96,28 @@
 	</div>
 	<?php } ?>
 </div>
-<?php }elseif($left==0){?>
+<?php }elseif($left==2){?>
 <div class="navlist floatl">
-<div class="paesear paesearp"> <em>Parts Search</em>
-		
-				<div class="form-item filter-select" id="select-partstype">
-					<select><option value="0">Select A Product</option><option value="2">Printer</option><option value="5">Copier</option><option value="7">Catridge</option></select>
-				</div>
-				<div class="form-item filter-select" id="select-partsbrand">
-					<select><option value="0">Select A Brand</option></select>
-				</div>
-				<div class="form-item filter-select" id="select-partsmodel">
-					<select><option value="0">Select A Model</option></select>
-				</div>
-				<div class="form-item" id="select-sumbit">
-					<input type="button" value="Search" class="form-submit">
-				</div>
-			</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <div class="mainlink">
 			<input type="text" autocomplete="off" class="search-textbox ac_input tagged" id="enter-part-number" title="Enter a part number" name="keys">
 			<input type="submit" class="search-button" value="submit" id="parts-search-button" name="">
-			</div></div>
-<?php }?>
+</div></div>
+<?php }elseif($left == 0){?>
+<div class="navlist floatl"></div>
+<?php } ?>
