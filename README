@@ -1,3 +1,21 @@
 partsmart 项目文档 20120528 更新
 sites/all/modules/psproject
 sites/all/modules/themes/partsmart
+
+$ git commit -m '20120530 dale'
+[master b086ccc] 20120530 dale
+ 8 files changed, 943 insertions(+), 7 deletions(-)
+ create mode 100644 sites/all/modules/psproject/ps_pages/ps_pages-web.inc
+ create mode 100644 sites/all/modules/psproject/ps_pages/ps_pages.inc.bak
+ create mode 100644 sites/all/themes/partsmart/css/dale_add.css.bak
+ create mode 100644 sites/all/themes/partsmart/images/wholesale-signup.jpg
+ create mode 100644 sites/all/themes/partsmart/node-product.tpl.php.bak
+ 
+ $ git commit -m '20120530 yu'
+ [yu]
+ pm/partsmart/node/6 修改已经更新到github
+ 
+ [zhao]
+  pm/partsmart/node/26
+	请问代码修改在什么地方？
+	
