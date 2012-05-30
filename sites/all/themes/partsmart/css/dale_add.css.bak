@@ -10,18 +10,18 @@ margin-left:90px;
 #brand-items-list ul li{text-transform: lowercase;}
 #brand-items-list li:first-letter{text-transform:uppercase;}
 .home .banner-link a:link {
-    color: #FFF;
+    color: #4C4B4B;
     text-decoration: none;
 }
 .home .banner-link a:visited {
-    color: #FFF;
+    color: #4C4B4B;
     text-decoration: none;
 }
 .home .banner-link a:hover {
-    color: #FFF;
+    color: #4C4B4B;
     text-decoration: underline;
 }
 .home .banner-link a:active {
-    color: #FFF;
+    color: #4C4B4B;
     text-decoration: none;
 }

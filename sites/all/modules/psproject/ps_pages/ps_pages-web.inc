@@ -75,17 +75,17 @@ function parts_list() {
 		$parts_title = l($parts_node->title,$parts_node->path);
 		
 		if($i % 4 != 0) {
-			$newsparts .= '<div class="partsproductitem"><div class="partsitem-img"><a href="'.$parts_node->path.'">'. $imgs .'</a></div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(',',$price).'</div></div>';
+			$newsparts .= '<div class="partsproductitem"><div class="partsitem-img">'. $imgs .'</div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(',',$price).'</div></div>';
 		}
 		else {
-			$newsparts .= '<div id="partsproduceitem-right" class="partsproductitem"><div class="partsitem-img"><a href="'.$parts_node->path.'">'. $imgs .'</a></div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(',',$price).'</div></div>';
+			$newsparts .= '<div id="partsproduceitem-right" class="partsproductitem"><div class="partsitem-img">'. $imgs .'</div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(',',$price).'</div></div>';
 		}
 		$i++;
 	}
-	// next 3 lines dale edited 20120528 20:35
-	$output .='<div id="newproduct-top" class="productlist-top"><span>New Parts</span><div id="newproductselect"><select name="select">' . $release_date_options . '</select></div></div>';
+
+	$output .='<div id="newproduct-top" class="productlist-top"><span>New-Parts</span><div id="newproductselect"><select name="select">' . $release_date_options . '</select></div></div>';
 	$output .='<div id="newproductajax" class="newproductlist">'. $newsparts .'<div class="clear"></div></div>';
-	//$output .='<div id="bestproduct-top" class="productlist-top"><span>Best Selling Parts</span></div>';
+	$output .='<div id="bestproduct-top" class="productlist-top"><span>Best Selling Parts</span></div>';
   return $output;
 }
 
@@ -183,6 +183,7 @@ function parts_brand() {
 		$output .= '<h5>Manufacturer</h5>';
 		$output .= $terms_img;
 	}
+
 	if(arg(2) && !(arg(3))){
 		$brand = taxonomy_get_term(arg(2));
 		$models = taxonomy_get_children(arg(2));

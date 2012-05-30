@@ -3,7 +3,7 @@
 	<div class="pic floatl">
 		<?php dpm($node->field_part_prtestore[0]['value']);
 		global $base_path;
-		
+
 		if(file_exists('sites/default/files/product/' . $node->title .'.jpg')) {
 			print '<a class="jqzoomimg" href="'.$base_path.'sites/default/files/product/' . $node->title .'.jpg" title=""><img src="'. imagecache_create_url("s326x326", 'sites/default/files/product/' . $node->title .'.jpg'). '" alt="" /></a>';
 		}else{

@@ -170,6 +170,8 @@ function parts_brand() {
 	if(!arg(2)){
 		$brand_terms = taxonomy_get_tree($parts_type,0,-1,1);
 		$terms_img = '<div class="maplink">';
+		
+ dpm($brand_terms,'12312');
 		foreach($brand_terms as $value){
 			if(taxonomy_image_display($value->tid)){
 				$terms_img .= '<a href="'.$base_path.$type.'/brand/'.$value->tid.'">'.taxonomy_image_display($value->tid).'</a>';
