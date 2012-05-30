@@ -1,7 +1,7 @@
 
 <div class="conpic floatl" id="product-silde">
 	<div class="pic floatl">
-		<?php dpm($node->field_part_prtestore[0]['value']);
+		<?php
 		global $base_path;
 		
 		if(file_exists('sites/default/files/product/' . $node->title .'.jpg')) {
@@ -225,10 +225,10 @@
 					$part = node_load($item->nid);
 					if($part->type == 'printer' || $part->type == 'copier' || $part->type == 'cartridge') {
 						if(file_exists('sites/default/files/product/' . $part->title .'.jpg'))
-						$output .='	<li><a href="' . url('node/' . $part->nid) . '"><img src="'. imagecache_create_url("s158x158", 'sites/default/files/product/' . $part->title .'.jpg'). '" alt="" /></a><div class="newparts-title">'.$part->title.'</div></li>';
+						$output .='	<li><a href="' . url('node/' . $part->nid) . '"><img src="'. imagecache_create_url("s158x158", 'sites/default/files/product/' . $part->title .'.jpg'). '" alt="" /></a><div class="newparts-title">'.$part->title.'</div><p class="newparts-desc">Toner Cartridge Parts</p></li>';
 						else
-						$output .='	<li><a href="' . url('node/' . $part->nid) . '"><img src="'. imagecache_create_url("s158x158", 'sites/default/files/default_images/blank.jpg'). '" alt="" /></a><div class="newparts-title">'. $part->title .'</div></li>';
-					}
+						$output .='	<li><a href="' . url('node/' . $part->nid) . '"><img src="'. imagecache_create_url("s158x158", 'sites/default/files/default_images/blank.jpg'). '" alt="" /></a><div class="newparts-title">'. $part->title .'</div><p class="newparts-desc">Toner Cartridge Parts</p></li>';
+					} //dpm($part); return;//
 				}
 				}
 				print $output;

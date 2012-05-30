@@ -25,3 +25,20 @@ margin-left:90px;
     color: #FFF;
     text-decoration: none;
 }
+
+
+
+#relateparts .prev {
+    background: url("../images/porleft-mouse-over.png") no-repeat scroll transparent;
+}
+
+#relateparts .next {
+    background: url("../images/porright-mouse-over.png") no-repeat scroll transparent;
+}
+#relateparts a.prev:hover {
+    background: url("../images/porleft.png") no-repeat scroll transparent;
+}
+
+#relateparts a.next:hover {
+    background: url("../images/porright.png") no-repeat scroll transparent;
+}

@@ -248,7 +248,7 @@ function parts_best() {
 
 	global $base_path;
 	$output = '';
-	$output .= '<h5>Best Selling Parts</h5>';
+	$output .= '<h5>Featured Products</h5>';
 	$best_html = '';
 	$sql = 'SELECT * FROM {node} WHERE type = "%s"';
 	$result = db_query_range(db_rewrite_sql('SELECT n.nid FROM {node} n WHERE n.type = "%s"'),arg(0),0,12);
