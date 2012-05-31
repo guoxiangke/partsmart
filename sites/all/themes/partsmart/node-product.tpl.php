@@ -225,10 +225,10 @@
 					$part = node_load($item->nid);
 					if($part->type == 'printer' || $part->type == 'copier' || $part->type == 'cartridge') {
 						if(file_exists('sites/default/files/product/' . $part->title .'.jpg'))
-						$output .='	<li><a href="' . url('node/' . $part->nid) . '"><img src="'. imagecache_create_url("s158x158", 'sites/default/files/product/' . $part->title .'.jpg'). '" alt="" /></a><div class="newparts-title">'.$part->title.'</div><p class="newparts-desc">Toner Cartridge Parts</p></li>';
+						$output .='	<li><a href="' . url('node/' . $part->nid) . '"><img src="'. imagecache_create_url("s158x158", 'sites/default/files/product/' . $part->title .'.jpg'). '" alt="" /></a><div class="newparts-title">'.l($part->title,'node/' . $part->nid).'</div><p class="newparts-desc">'.$part->body.'</p></li>';
 						else
-						$output .='	<li><a href="' . url('node/' . $part->nid) . '"><img src="'. imagecache_create_url("s158x158", 'sites/default/files/default_images/blank.jpg'). '" alt="" /></a><div class="newparts-title">'. $part->title .'</div><p class="newparts-desc">Toner Cartridge Parts</p></li>';
-					} //dpm($part); return;//
+						$output .='	<li><a href="' . url('node/' . $part->nid) . '"><img src="'. imagecache_create_url("s158x158", 'sites/default/files/default_images/blank.jpg'). '" alt="" /></a><div class="newparts-title">'.l($part->title,'node/' . $part->nid).'</div><p class="newparts-desc">'.$part->body.'</p></li>';
+					} //dale
 				}
 				}
 				print $output;
