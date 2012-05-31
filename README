@@ -1,6 +1,10 @@
 partsmart 项目文档 20120528 更新
 sites/all/modules/psproject
 sites/all/modules/themes/partsmart
+------------------yu--------------------
+git commit -m '0531 10:12 yu'
+modified:   sites/all/modules/psproject/ps_pages/ps_pages.inc
+modified:   sites/all/themes/partsmart/style.css
 -------------------dale-----------------
 1.pm/partsmart/node/308 部件页面调整，related products添加描述和链接 修改 node-product.tpl.php  228 230 行
 

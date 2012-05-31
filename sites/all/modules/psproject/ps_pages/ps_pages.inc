@@ -7,7 +7,7 @@ function parts_list() {
 	global $user;
 	drupal_set_title('');
 	$output = '';
-	$output .='<div class="conout">
+	/*$output .='<div class="conout">
 			   <div class="navpimg floatl"><img alt="" src="'.$base_path.'sites/all/themes/partsmart/images/lunzi.jpg"></div>
 				<div class="navlit floatr">
 					<ul>
@@ -28,8 +28,10 @@ function parts_list() {
 					</ul>
 				</div>
 				<div class="clear"></div>
-			</div>';
+			</div>';*/
 
+	$output .= views_get_view('partssideshow')->render('Defaults');
+	
 	
 
 	$sql = 'SELECT cd.field_part_release_date_value FROM {content_field_part_release_date} cd INNER JOIN {node} n ON n.nid = cd.nid WHERE n.type = "%s" ORDER BY cd.field_part_release_date_value DESC';

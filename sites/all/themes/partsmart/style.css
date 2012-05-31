@@ -1802,3 +1802,15 @@ body.firefox #enter-part-number {padding-top:0;}
 a.addtocart {
 	margin-top:30px;
 }
+
+.partssideshow{width:100%; position:relative; margin-bottom:10px;}
+.partssideshow .views_slideshow_main{height: 288px;overflow: hidden;width: 490px; float:left;}
+.partssideshow .views-slideshow-controls-top,
+.partssideshow .views-slideshow-controls-bottom{width: 200px; height:288px; overflow:hidden; float:right;}
+.partssideshow .views_slideshow_thumbnailhover_breakout_teasers{height:192px; margin-top:40px;overflow:hidden;}
+.partssideshow .views_slideshow_thumbnailhover_div_breakout_teaser{color: #575555; display: block;  height: 55px;  padding-left: 20px;    padding-top: 9px;}
+.partssideshow .views_slideshow_thumbnailhover_div_breakout_teaser.activeSlide{background:url("images/upbgg.png") no-repeat left center;color:#FFF;}
+.partssideshow .views_slideshow_controls a{display:block; height:40px; width:200px; position:absolute; text-indent:-9999px;}
+.partssideshow .views_slideshow_thumbnailhover_pause views_slideshow_pause{display:none;}
+.partssideshow .views_slideshow_controls a.views_slideshow_previous{right:0; top:0; background:url("images/upx.png") no-repeat center center;}
+.partssideshow .views_slideshow_controls a.views_slideshow_next{right:0; top:248; background:url("images/dox.png") no-repeat center center;}
