@@ -88,7 +88,7 @@ print menu_tree($menu_name);
 			$data .= '<div class="news_title">'.$node->title.'</div>';
 			$data .= '<div class="news_created"><span class="news_posted">Posted:</span>'. format_date($node->created,'custom','F d, Y').'</div>';
 			$data .= '<div>';
-			$data .= '<div class="news_img"><img src="'.url($node->field_new_image[0][filepath]).'"/></div>';
+			$data .= '<div class="news_img"><a href="'.url($node->field_new_image[0][filepath]).'"><img src="'.url($node->field_new_image[0][filepath]).'"/></a></div>';
 			if (str_word_count($node->body) <= 60)
 			$data .= '<div class="news_content">'.$node->body.'</div>';
 			else 
