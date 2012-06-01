@@ -1,6 +1,15 @@
 partsmart 项目文档 20120528 更新
 sites/all/modules/psproject
 sites/all/modules/themes/partsmart
+---------------20120601 15:46-----------------------
+ modified:   sites/all/modules/psproject/ps_pages/ps_pages.inc
+ modified:   sites/all/themes/partsmart/css/dale_add.css
+ modified:   sites/all/themes/partsmart/css/dale_add.css.bak
+ modified:   sites/all/themes/partsmart/images/dox.png
+ modified:   sites/all/themes/partsmart/images/upx.png
+ modified:   sites/all/themes/partsmart/node-product.tpl.php
+ modified:   sites/all/themes/partsmart/node-product.tpl.php.bak
+ modified:   sites/all/themes/partsmart/style.css
 ------------------yu--------------------
 git commit -m '0531 10:12 yu'
 modified:   sites/all/modules/psproject/ps_pages/ps_pages.inc

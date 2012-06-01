@@ -1708,8 +1708,8 @@ body.firefox #enter-part-number {padding-top:0;}
     background: url("images/prorightt-mouse-over.png") no-repeat scroll transparent;
 }
 
-#slider-code a.disablel :hover { background: url("images/proleftt-gray.png") no-repeat scroll transparent; }
-#slider-code a.disabler :hover { background: url("images/prorightt-gray.png") no-repeat scroll transparent; }
+#slider-code a.prev.disablel:hover { background: url("images/proleftt-gray.png") no-repeat scroll transparent;cursor:default; }
+#slider-code a.next.disabler:hover { background: url("images/prorightt-gray.png") no-repeat scroll transparent; cursor:default;}
 
 #relateparts { height: 200px; overflow:hidden; }
 #relateparts .viewport { float: left; width: 840px; height: 200px; overflow: hidden; position: relative; }

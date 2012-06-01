@@ -3,8 +3,12 @@
 	<div class="pic floatl">
 		<?php
 		global $base_path;
-		
-		if(file_exists('sites/default/files/product/' . $node->title .'.jpg')) {
+		global $user;
+		$roles_id = array_keys($user->roles);
+
+		if(!$node->field_part_prtestore[0]['value']&&($user->id==0||in_array(3,$roles_id))){ //dale add 20120531 2201
+			print '<a><img src="'. imagecache_create_url("s326x326", path_to_theme().'/images/wholesale-signup.jpg'). '" alt="" /></a>';
+		}elseif(file_exists('sites/default/files/product/' . $node->title .'.jpg')) {
 			print '<a class="jqzoomimg" href="'.$base_path.'sites/default/files/product/' . $node->title .'.jpg" title=""><img src="'. imagecache_create_url("s326x326", 'sites/default/files/product/' . $node->title .'.jpg'). '" alt="" /></a>';
 		}else{
 			print '<a><img src="'. imagecache_create_url("s326x326", 'sites/default/files/default_images/blank.jpg'). '" alt="" /></a>';
@@ -14,8 +18,9 @@
 			
 	<ul class="picli floatr clearfix"  id="thumblist"  >
 		<?php
-			
-			if(file_exists('sites/default/files/product/' . $node->title .'.jpg')) {
+			if(!$node->field_part_prtestore[0]['value']&&($user->id==0||in_array(3,$roles_id))){ //dale add 20120531 2201
+			print '<a><img src="'. imagecache_create_url("s326x326", path_to_theme().'/images/wholesale-signup.jpg'). '" alt="" /></a>';
+		}elseif(file_exists('sites/default/files/product/' . $node->title .'.jpg')) {
 					print '<li class="selected"><div class="product-smallimg"><img src="'. imagecache_create_url("s51x51", 'sites/default/files/product/' . $node->title .'.jpg'). '" alt="" /></div></li>';
 			}
 		?>

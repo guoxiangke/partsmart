@@ -42,3 +42,56 @@ margin-left:90px;
 #relateparts a.next:hover {
     background: url("../images/porright.png") no-repeat scroll transparent;
 }
+
+
+#news-headline img {
+ width: 450px;
+ height: 300px;
+ border:none;
+}
+#news-headline {
+	padding: 0;
+	width: 456px;
+	height:322px;
+}
+.conout div.selected a{
+	border:3px solid #33FF00;
+}
+
+.newslist ul.proimgli a{
+	display:block;
+}
+
+#news-headline a{
+	display:block;
+	border:3px solid #FFF;
+}
+#news-headline a:hover{
+	display:block;
+	border:3px solid #33FF00;
+}
+ul.proimgli a{
+	border: 3px solid #FFF;
+	width: 84px;
+}
+ul.proimgli a:hover{
+	border: 3px solid #33FF00;
+}
+.newslist li.selected img {
+    border: none;
+}
+.newslist li.selected img {
+height: 56px;
+width: 83px;
+}
+ul.proimgli li {
+    width:131px;
+	}
+div.newslist img {
+    border: none;
+}
+
+ul.proimgli li img {
+height: 56px;
+width: 83px;
+}

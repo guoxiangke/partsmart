@@ -271,7 +271,7 @@ function parts_best() {
 		}
 		$best_html .= '<em>'.$part->title.'</em>';
     
-		$best_html .= '<p>HP Laser Jet 123<br>';
+		$best_html .= '<p>'.$part->body.'<br>';
    		if($parts_node->field_part_price1[0][value])
 	  	$best_html .= '$'. $parts_node->field_part_price1[0][value] .'(1+)';
       	if($parts_node->field_part_price10[0][value])
