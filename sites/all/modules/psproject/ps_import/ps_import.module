@@ -244,4 +244,8 @@ $node->nid, $category, $subcategory);
 			}
 		}
     }
+	if($op == 'delete') {
+		db_query("DELETE FROM {node_brand} WHERE nid = %d",$node->nid);
+		db_query("DELETE FROM {node_category} WHERE nid = %d",$node->nid);
+	}
 }

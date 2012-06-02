@@ -261,12 +261,53 @@
 				<?php 
 				$output ='';
 				$output .= '<ul>';
-				if(!empty($node->field_part_com_parts)){
-					foreach($node->field_part_com_parts as $pw_part){
-						$output .='<li>'.$pw_part['view']."</li>";
+				if(db_result(db_query('SELECT COUNT(*) FROM {compatible} WHERE part_a = "%s"',$node->title)) > 0){
+					$result =  db_query('SELECT * FROM {compatible} WHERE part_a LIKE "%s"',$node->title);
+					while($item = db_fetch_object($result)){
+						$nid = db_result(db_query('SELECT nid FROM {node} WHERE title = "%s"',$item->parts_b));
+						$part_compatible = node_load($nid);
+						
+						$output .= '<li>'. l($part_compatible->title,$part_compatible->path) . '</li>';	
+					}
+				}
+				if(db_result(db_query('SELECT COUNT(*) FROM {compatible} WHERE parts_b = "%s"',$node->title)) > 0){
+					$result =  db_query('SELECT * FROM {compatible} WHERE parts_b LIKE "%s"',$node->title);
+					while($item = db_fetch_object($result)){
+						$nid = db_result(db_query('SELECT nid FROM {node} WHERE title = "%s"',$item->part_a));
+						$part_compatible = node_load($nid);
+						
+						$output .= '<li>'. l($part_compatible->title,$part_compatible->path) . '</li>';	
 					}
 				}
 				$output .= '</ul>';
+				print $output; 
+				?>
+			</div>
+            
+            <p class="blue"><strong><?php print t('Kit configuration');?></strong></p>
+			<div class="contmat">
+				<?php 
+				$output ='';
+				$output .= '<table><tr><td>Kit No.</td><td>';
+				if(db_result(db_query('SELECT COUNT(*) FROM {kit} WHERE partno = "%s"',$node->title)) > 0){
+					$result =  db_query('SELECT * FROM {kit} WHERE partno = "%s"',$node->title);
+					while($item = db_fetch_object($result)){
+						$nid = db_result(db_query('SELECT nid FROM {node} WHERE title = "%s"',$item->kitno));
+						$part_kit = node_load($nid);
+						$output .= l($part_kit->title,$part_kit->path) . '<br>';	
+					}
+				}
+				$output .= '</td></tr><tr><td>Part No.</td><td>';
+				if(db_result(db_query('SELECT COUNT(*) FROM {kit} WHERE kitno = "%s"',$node->title)) > 0){
+					$result =  db_query('SELECT * FROM {kit} WHERE kitno = "%s"',$node->title);
+					while($item = db_fetch_object($result)){
+						$nid = db_result(db_query('SELECT nid FROM {node} WHERE title = "%s"',$item->partno));
+						$part_kit = node_load($nid);
+						
+						$output .= l($part_kit->title,$part_kit->path) . '<br>';	
+					}
+				}
+				$output .= '</td></tr></table>';
 				print $output; 
 				?>
 			</div>

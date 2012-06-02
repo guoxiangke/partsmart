@@ -17,16 +17,13 @@ function pscart_addtocart($arg) {
 	if(array_key_exists(3,$user->roles)){
 		unset($num);
 		$part = node_load($arg);
-		foreach ($part->field_part_rg_price_vr as $k => $range) {
-			if( $part->field_part_rg_unitprice[$k]['value'] > 0 ) {
-      	$num = $range[value];
-				break;
-   		}
-		}
+		if($part-> field_part_price1[0][value] > 0) $num = 1;
+		elseif($part-> field_part_price10[0][value] > 0) $num = 10;
+		elseif($part-> field_part_price100[0][value] > 0) $num = 100;
 		uc_cart_add_item($arg, $num);
 	}
 	else{
-	 uc_cart_add_item($arg, 1);
+		uc_cart_add_item($arg, 1);
 	}
 	//drupal_set_message(t('Your cart has been updated.'));
 	drupal_goto('cart');
@@ -39,45 +36,38 @@ function pscart_addtocart($arg) {
  */
 function pscart_cart_item($op, &$item) {
 	global $user;
-  switch ($op) {
+  	switch ($op) {
     case 'load'://Update cart item price
-			if(array_key_exists(3,$user->roles)){
+		if(array_key_exists(3,$user->roles)){
      		$itemprice = pscart_cart_update_price($item->nid,$item->qty);
-      	if(!empty($itemprice)){
-        	$item->price = $itemprice;
-      	}
+      		if(!empty($itemprice)){
+        		$item->price = $itemprice;
+      		}
       	break;
-			}
-			else{
-				$node = node_load($item->nid);
-				$item->price = $node->field_part_unitprice[0]['value'];
-			}
-  }
+		}
+		else{
+			$node = node_load($item->nid);
+			$item->price = $node->field_part_unitprice[0]['value'];
+		}
+	break;
+  	}
 }
 
 function pscart_cart_update_price($nid,$qty) {
 	$node = node_load($nid);
-  global $user;
+  	global $user;
 	
-
-	if(empty($prices)) {
-      $prices = ps_pages_get_shop_sale_price($node->field_part_rg_price_vr,$node->field_part_rg_unitprice);
-	 
-  }
-	
-		foreach($prices as $price) {
-			 $ps[$price['range']] = $price['price'];
+	$ps[1] = $node->field_part_price1[0][value];
+	$ps[10] = $node->field_part_price10[0][value];
+	$ps[100] = $node->field_part_price100[0][value];
+	ksort($ps);
+	foreach($ps as $k=>$val) {
+		if($k <= $qty) {
+			 $itemprice = $val;
 		}
-		ksort($ps);
-		foreach($ps as $k=>$val) {
-			if($k <= $qty) {
-				 $itemprice = $val;
-			}
-		}
+	}
 	 
-		return $itemprice;
-	
-  
+	return $itemprice;
 }
 
 function pscart_form_alter(&$form, $form_state, $form_id) {
@@ -89,35 +79,27 @@ function pscart_form_alter(&$form, $form_state, $form_id) {
  
 	if($form_id ==  'uc_cart_view_form'){
 		$form['checkout']['#submit'][] = 'pscart_checkout_submit';
-		
 		$i = 0; 
 		$form['items']['#columns']['desc']['cell'] = t('Description');
-    foreach (uc_cart_get_contents() as $item){
-    	$display_item = module_invoke($item->module, 'cart_display', $item);
+    	foreach (uc_cart_get_contents() as $item){
+    		$display_item = module_invoke($item->module, 'cart_display', $item);
 			$part = node_load($item->nid);
 			$prices = array();
-			if(array_key_exists(3,$user->roles)){
-     		foreach ($part->field_part_rg_price_vr as $k => $range) {
-					if( $part->field_part_rg_unitprice[$k]['value'] > 0 ) {
-        		$prices[] = '(+' . $range['value'] . ') ' . '$' . number_format($part->field_part_rg_unitprice[$k]['value'], 2, '.', '');
-   				}
-				}
-			}
-			else{
-				$prices[] = '$'.number_format($part->field_part_unitprice[0]['value'],2,'.','');
-			}
+			if($part->field_part_price1[0][value] > 0) $prices[] = '(+1)' . '$' . number_format($part->field_part_price1[0]['value'], 2, '.', '');
+			if($part->field_part_price10[0][value] > 0) $prices[] = '(+10) ' . '$' . number_format($part->field_part_price10[0]['value'], 2, '.', '');
+			if($part->field_part_price100[0][value] > 0) $prices[] = '(+100' . '$' . number_format($part->field_part_price100[0]['value'], 2, '.', '');
 			
-      $description = '<p>'.$display_item['title']['#value'].'</p>';
+     		$description = '<p>'.$display_item['title']['#value'].'</p>';
 			$description .= '<p>'.implode('<br>', $prices).'</p>';
 			if(file_exists('sites/default/files/product/' . $part->title .'.jpg')) {
 				$images = '<img src="'. imagecache_create_url("s51x51", 'sites/default/files/product/' . $part->title .'.jpg'). '" alt="" />';
 			}else{
 				$images = '<img src="'. imagecache_create_url("s51x51", 'sites/default/files/default_images/blank.jpg'). '" alt="" />';
 			}
-      $form['items'][$i]['image']['#value'] = $images;
+      		$form['items'][$i]['image']['#value'] = $images;
 			$form['items'][$i]['desc']['#value'] = $description;
-      $i++;
-    }
+      		$i++;
+    	}
 	}
 	
 	//cart checkout page, need to seperate it with multi step

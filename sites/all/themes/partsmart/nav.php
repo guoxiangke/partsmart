@@ -23,14 +23,18 @@ print menu_tree($menu_name);
 		
 		
 		<div class="linkcc floatr">
-		<?php 
-			if(isset($_SESSION['pscart_checkout_step1']) && $_SESSION['pscart_checkout_step1']) {
-				unset($_SESSION['pscart_checkout_step1']);
-				print '<p class="floatl"><img src="'.path_to_theme().'/images/checkout_step1.png"/></p>';
-			}
-		?>
-			<p class="floatl">Share</p>
-			<p class="floatl linkcp" style="line-height:0;"><a href="#"><img src="<?php print base_path() . path_to_theme(); ?>/images/twitterr.png" alt="Partsmart" title="Partsmart" /></a><a href="#"><img src="<?php print base_path() . path_to_theme() ?>/images/fabook.png" alt="Partsmart" title="Partsmart" /></a></p>
+		<!-- AddThis Button BEGIN -->
+<div class="addthis_toolbox addthis_default_style addthis_32x32_style">
+<a class="addthis_button_preferred_1"></a>
+<a class="addthis_button_preferred_2"></a>
+<a class="addthis_button_preferred_3"></a>
+<a class="addthis_button_preferred_4"></a>
+<a class="addthis_button_compact"></a>
+<a class="addthis_counter addthis_bubble_style"></a>
+</div>
+<script type="text/javascript">var addthis_config = {"data_track_addressbar":true};</script>
+<script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid=ra-4fc7b3ce3f96809f"></script>
+<!-- AddThis Button END -->
 		</div>
 	</div>
 	<h2><?php print $category_name;?></h2>
