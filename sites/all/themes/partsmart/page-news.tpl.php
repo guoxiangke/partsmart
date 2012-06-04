@@ -55,14 +55,15 @@ print menu_tree($menu_name);
 		$item = db_fetch_object($result);
 		$nodes = node_load($item->nid);
 		?>
-		<div id = "news-headline" class="newslist floatl"><a href="<?php print url('node/'.$nodes->nid); ?>"><img src="<?php print $nodes->field_new_image[0]['filepath'];?>" alt="" title="" /></a><a href="<?php print url('node/'.$nodes->nid); ?>"><?php print $nodes->title;?></a></div>
+		<div id = "news-headline" class="newslist floatl"><div  id="news-headline-fa" ><a href="<?php print url('node/'.$nodes->nid); ?>"><img src="<?php print $nodes->field_new_image[0]['filepath'];?>" alt="" title="" /></a></div>
+		<div id="new-headline-des"><a href="<?php print url('node/'.$nodes->nid); ?>"><?php print $nodes->title;?></a></div></div>
 		<!-- right end -->
 		<div class="clear"></div>
 	</div>
 	<!-- cont -->
 	<?php
 		$sql = "SELECT * FROM {node} WHERE type = '%s' AND status = 1 ORDER BY created DESC";
-		$result = db_query_range($sql, 'news', 1, 6);
+		$result = db_query_range($sql, 'news', 0, 4);
 		$proimg = '';
 		$i =1;
 		while($item = db_fetch_object($result)) {

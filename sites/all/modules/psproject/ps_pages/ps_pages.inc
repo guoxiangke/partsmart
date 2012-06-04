@@ -263,13 +263,15 @@ function parts_best() {
 		{
 			$best_html .= '<li class="prodmarg">';
 		}
+		//l('<img alt="" src="'.imagecache_create_url("s164x164", 'sites/default/files/default_images/blank.jpg').'">',$part->path);
 		if(file_exists('sites/default/files/product/' . $part->title .'.jpg')){
-			$best_html .= '<div class="proimgae"><a href="'.$base_path.'node/'.$part->nid.'"><img alt="" src="'.imagecache_create_url("s164x164", 'sites/default/files/product/' . $part->title .'.jpg').'"></a></div>';
+			$best_html .= '<div class="proimgae">'.l('<img alt="" src="'.imagecache_create_url("s164x164", 'sites/default/files/product/' . $part->title .'.jpg').'">',$part->path,array('html'=>true)).'</div>';
 		}
 		else{
-			$best_html .= '<div class="proimgae"><a href="'.$base_path.'node/'.$part->nid.'"><img alt="" src="'.imagecache_create_url("s164x164", 'sites/default/files/default_images/blank.jpg').'"></a></div>';
+			$best_html .= '<div class="proimgae">'.l('<img alt="" src="'.imagecache_create_url("s164x164", 'sites/default/files/default_images/blank.jpg').'">',$part->path,array('html'=>true)).'</div>';
 		}
-		$best_html .= '<em>'.$part->title.'</em>';
+		$parts_title = l($part->title,$part->path);
+		$best_html .= '<em>'.$parts_title.'</em>';
     
 		$best_html .= '<p>'.$part->body.'<br>';
    		if($parts_node->field_part_price1[0][value])
