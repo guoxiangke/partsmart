@@ -158,7 +158,7 @@ function ps_pages_menu() {
         'page callback' => 'parts_category',
         'access callback' => TRUE,
         'type' => MENU_CALLBACK,
-				'file' => 'ps_pages.inc'
+		'file' => 'ps_pages.inc'
     );
 	$items['parts_search'] = array(
         'page callback' => 'parts_search',
@@ -203,6 +203,24 @@ function ps_pages_menu() {
         'type' => MENU_CALLBACK
     );
 	
+	$items['printer/filter'] = array(
+        'page callback' => 'filter',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+	
+	$items['copier/filter'] = array(
+        'page callback' => 'filter',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+	
+	$items['cartridge/filter'] = array(
+        'page callback' => 'filter',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+    );
+	
 	return $items;
 }
 
@@ -222,6 +240,12 @@ function ajax_parts_autocomplete() {
 	}
 	
 	drupal_json($matches);
+}
+
+function filter() {
+	drupal_set_title('');
+	$output = '';
+	return $output;	
 }
 
 function ajax_filter_brand() {
