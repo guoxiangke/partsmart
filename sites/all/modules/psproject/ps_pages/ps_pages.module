@@ -2,6 +2,8 @@
 
 function ps_pages_init() {
     drupal_add_css(drupal_get_path('module', 'ps_pages') . '/psstyle.css', 'module');
+    drupal_add_css(drupal_get_path('module', 'jquery_ui') . '/jquery.ui/themes/base/ui.dialog.css', 'module');
+	jquery_ui_add(array('ui.dialog'));
 }
 
 function ps_pages_perm() {

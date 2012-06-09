@@ -5,9 +5,26 @@
     <?php print $head ?>
     <title><?php print $head_title ?></title>
     <?php print $styles ?>
-		
     <?php print $scripts ?>
- 
+	<script type="text/javascript">
+		$(document).ready(function(){
+			$( "div.dialogs" ).dialog({
+				autoOpen: false,
+				show: "blind",
+				hide: "explode",
+				width: 1200,
+     			maxWidth: 1200
+
+			});
+			
+			$( "div.news_img" ).click(function() {
+				idd = $(this).attr('idd'); 
+				$( '#dialogs-'+idd).dialog( "open" );
+				$('#header').slideToggle();
+				return false;
+			});
+		});
+	</script>
 </head>
 <body class="<?php  print $body_classess;?>">
 <!-- header -->
@@ -82,13 +99,16 @@ print menu_tree($menu_name);
 		  $pager_num = 0;
 		  $data = '';
   		  $result = pager_query($sql, 10, $pager_num, NULL, 'news');
+		  $i=0;
 		  while ($item = db_fetch_object($result)) {
 		  	$node = node_load($item->nid);
 			$data .= '<div class="news_item">';
 			$data .= '<div class="news_title">'.$node->title.'</div>';
 			$data .= '<div class="news_created"><span class="news_posted">Posted:</span>'. format_date($node->created,'custom','F d, Y').'</div>';
 			$data .= '<div>';
-			$data .= '<div class="news_img"><a href="'.url($node->field_new_image[0][filepath]).'"><img src="'.url($node->field_new_image[0][filepath]).'"/></a></div>';
+			//<a id="single_image" href="image_big.jpg"><img src="image_small.jpg" alt=""/></a>
+			$data .= '<div class="news_img" idd="'.++$i.'"><img src="'.url($node->field_new_image[0][filepath]).'"/></div>';
+			$data .= '<div class="dialogs"id="dialogs-'.$i.'"  rel="'.$i.'"><img src="'.url($node->field_new_image[0][filepath]).'"/></div>';
 			if (str_word_count($node->body) <= 60)
 			$data .= '<div class="news_content">'.$node->body.'</div>';
 			else 
