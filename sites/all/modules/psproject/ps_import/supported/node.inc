@@ -286,6 +286,34 @@ function node_ps_import_values_alter(&$values, $type, $defaults, $options, $fiel
   }
 }
 
-function node_ps_import_postprocess($type, $values, $options, $preview) {
+function hook_ps_import_task($task, $op) {
 	
+}
+
+/**
+ * Implementation of hook_ps_import_fields_alter().
+ */
+function node_ps_import_fields_alter(&$fields, $type) {
+  foreach ($fields as $fieldname => $fieldinfo) {
+	  if ($fieldname == 'title') {
+    	$fields[$fieldname]['preprocess'][] = 'ps_import_check_title';
+	  }
+  }
+}
+
+/**
+ * Check if the value is a valid taxonomy term (by tid or name).
+ *
+ * Uses: $field['vocabulary'].
+ *
+ * @ingroup ps_import_preprocess
+ */
+function ps_import_check_title(&$value, $field, $options, $preview) {
+	$count = db_result(db_query('SELECT COUNT(*) FROM {node} WHERE title = "%s"',$value));
+	if($count == 0) {
+		return TRUE;
+	}else{
+ 		ps_import_input_error(t('There has a same %name product!', array('%name' => $value)));
+  		return FALSE;
+	}
 }
