@@ -115,3 +115,9 @@ width: 185px;
 clear: both;
 color: #699329;
 }
+.addthis_button_expanded{
+	visibility: hidden;
+}
+#add_this {
+	margin-right: -45px;
+}

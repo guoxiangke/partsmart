@@ -68,7 +68,7 @@ function parts_list() {
 		$price = array();		 
       
       if($parts_node->field_part_price1[0][value])
-	  $price[] = '$'. $parts_node->field_part_price1[0][value] .'(1+)';
+		  $price[] = '$'. $parts_node->field_part_price1[0][value] .'(1+)';
       if($parts_node->field_part_price10[0][value])
       $price[] = '$'. $parts_node->field_part_price10[0][value] .'(10+)';
       if($parts_node->field_part_price100[0][value])
@@ -126,7 +126,7 @@ function parts_new() {
         global $user;
         $roles_id = array_keys($user->roles);
     	if($parts_node->field_part_price1[0][value])
-	  	$price[] = '$'. $parts_node->field_part_price1[0][value] .'(1+)';
+	  		$price[] = '$'. $parts_node->field_part_price1[0][value] .'(1+)';
       	if($parts_node->field_part_price10[0][value])
       	$price[] = '$'. $parts_node->field_part_price10[0][value] .'(10+)';
       	if($parts_node->field_part_price100[0][value])
@@ -134,10 +134,10 @@ function parts_new() {
 				
 		$parts_title = l($parts_node->title,$parts_node->url.'node/'.$parts_node->nid);
 		if($j % 4 != 0) {
-			$newsparts .= '<div class="partsproductitem"><div class="partsitem-img">'. $imgs .'</div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
+			$newsparts .= '<div class="partsproductitem"><div class="partsitem-img"><a href="'.$parts_node->path.'">'. $imgs .'</a></div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
 		}
 		else {
-			$newsparts .= '<div id="partsproduceitem-right" class="partsproductitem"><div class="partsitem-img">'. $imgs .'</div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
+			$newsparts .= '<div id="partsproduceitem-right" class="partsproductitem"><div class="partsitem-img"><a href="'.$parts_node->path.'">'. $imgs .'</a></div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
 		}
 		$j++;
 	}

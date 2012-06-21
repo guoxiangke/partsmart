@@ -699,13 +699,13 @@ function ajax_newpartslist() {
 		if($parts_node->field_part_price10[0][value] != 0) $price[] = '$' . $parts_node->field_part_price10[0][value];
 		if($parts_node->field_part_price100[0][value] != 0) $price[] = '$' . $parts_node->field_part_price100[0][value];
 		
-		$parts_title = l($parts_node->title,$parts_node->url);
-		
+		$parts_title = l($parts_node->title,$parts_node->path);
+
 		if($i % 4 != 0) {
-			$newsparts .= '<div class="partsproductitem"><div class="partsitem-img">'. $imgs .'</div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
+			$newsparts .= '<div class="partsproductitem"><div class="partsitem-img"><a href="'.$parts_node->path.'">'. $imgs .'</a></div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
 		}
 		else {
-			$newsparts .= '<div id="partsproduceitem-right" class="partsproductitem"><div class="partsitem-img">'. $imgs .'</div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
+			$newsparts .= '<div id="partsproduceitem-right" class="partsproductitem"><div class="partsitem-img"><a href="'.$parts_node->path.'">'. $imgs .'</a></div><div class="partsitem-title">'. $parts_title .'</div><div class="partsprice">'.implode(' ',$price).'</div></div>';
 		}
 		$i++;
 	}
