@@ -108,7 +108,7 @@
 								$output .= str_replace("$0.00","N/a",$showprice);
 							}
 					}else{
-						if($node->field_part_unitprice[0]['value'] == 0){
+						if(($node->field_part_unitprice[0]['value'] == 0) || !$node->field_part_prtestore[0]['value']){
 						$output .= '<p><label>'. t('Price').'</label><span>N/A</span></p>';
 						}
 					else{
@@ -201,7 +201,7 @@
 		</div>
 		<div class="clear"></div>
 	</div>
-
+		<?php if($node->field_part_prtestore[0]['value']): ?>
 		<h3><?php print t('View Related Products'); ?></h3>
 
 		<div class="conout" id="partdetails">
@@ -247,7 +247,7 @@
 
 		<div class="clear"></div>
 	</div>
-
+<?php endif; ?>
 <?php if(user_access('show partSmart internal data')): ?>
 	<h3><?php print t('PartSmart Internal Data');?></h3>
 
